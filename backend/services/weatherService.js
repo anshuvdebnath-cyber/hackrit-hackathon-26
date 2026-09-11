@@ -293,12 +293,16 @@ async function fetchBatchWeather(villages, forceRefresh = false) {
  * clicked point differs instead of a constant 36.
  */
 async function getTerrainSlope(lat, lng) {
-  const clamp = (v) => Math.max(15, Math.min(55, Math.round(v * 10) / 10));
-  // Deterministic fallback: hash of coords -> 28..44deg (varies per point)
+  const clamp = (v) => Math.max(0, Math.min(65, Math.round(v * 10) / 10));
+  
+  // Deterministic fallback for land coordinates (20-40 deg)
   const fallbackSlope = () => {
+    const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+    if (isLikelyOcean) return 0.0;
     const h = Math.abs(Math.sin(lat * 12.9898 + lng * 78.233) * 43758.5453) % 1;
-    return clamp(28 + h * 16);
+    return clamp(20 + h * 20);
   };
+
   try {
     const d = 0.0045; // ~500m
     const url =
@@ -306,9 +310,43 @@ async function getTerrainSlope(lat, lng) {
     const res = await axios.get(url, { timeout: 5000 });
     const elev = res.data && res.data.elevation;
     if (!Array.isArray(elev) || elev.length < 3 || elev.some((e) => e == null)) {
-      return { slopeAngle: fallbackSlope(), source: 'estimated-hash' };
+      const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+      return {
+        slopeAngle: fallbackSlope(),
+        elevation: isLikelyOcean ? 0 : null,
+        isOcean: isLikelyOcean,
+        isWaterBody: isLikelyOcean,
+        source: 'estimated-hash'
+      };
     }
     const [c, n, e] = elev;
+    const centerElev = Math.round(c * 10) / 10;
+
+    // Check if open ocean / sea level (elev <= 0m or within 2m with near-zero gradient)
+    const isOcean = centerElev <= 0 || (centerElev <= 2 && Math.abs(n - c) < 0.25 && Math.abs(e - c) < 0.25);
+    // Check if flat inland water surface (e.g. Pangong Tso or high altitude lake where all points match)
+    const isFlatWater = Math.abs(n - c) < 0.15 && Math.abs(e - c) < 0.15;
+
+    if (isOcean) {
+      return {
+        slopeAngle: 0.0,
+        elevation: 0,
+        isOcean: true,
+        isWaterBody: true,
+        source: 'marine-elevation'
+      };
+    }
+
+    if (isFlatWater) {
+      return {
+        slopeAngle: 0.0,
+        elevation: centerElev,
+        isOcean: false,
+        isWaterBody: true,
+        source: 'flat-water-dem'
+      };
+    }
+
     const latRad = (Number(lat) * Math.PI) / 180;
     const mPerDegLat = 111320;
     const mPerDegLng = 111320 * Math.max(0.2, Math.cos(latRad));
@@ -316,11 +354,23 @@ async function getTerrainSlope(lat, lng) {
     const gradE = (e - c) / (d * mPerDegLng);
     const slopeRad = Math.atan(Math.sqrt(gradN * gradN + gradE * gradE));
     const slopeDeg = (slopeRad * 180) / Math.PI;
-    // Flat valley floor still gets small deterministic jitter so pins differ
-    const jitter = (Math.abs(Math.sin(lat * 91.7 + lng * 47.3)) % 1) * 2 - 1;
-    return { slopeAngle: clamp(slopeDeg + jitter), source: 'open-meteo-elevation' };
+
+    return {
+      slopeAngle: clamp(slopeDeg),
+      elevation: centerElev,
+      isOcean: false,
+      isWaterBody: false,
+      source: 'open-meteo-elevation'
+    };
   } catch (_err) {
-    return { slopeAngle: fallbackSlope(), source: 'estimated-hash' };
+    const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+    return {
+      slopeAngle: fallbackSlope(),
+      elevation: isLikelyOcean ? 0 : null,
+      isOcean: isLikelyOcean,
+      isWaterBody: isLikelyOcean,
+      source: 'estimated-hash'
+    };
   }
 }
 

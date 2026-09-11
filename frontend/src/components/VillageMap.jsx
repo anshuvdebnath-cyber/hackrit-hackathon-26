@@ -209,9 +209,9 @@ export default function VillageMap({
           region: 'Dynamic Himalayan DEM Sector',
           lat: parseFloat(lat),
           lng: parseFloat(lng),
-          elevation: data.elevation || data.weather?.modelElevation || 2800,
-          slopeAngle: data.slopeAngle || 32,
-          aspect: data.slopeAngle > 30 ? 'North-East Chute' : 'Valley Floor',
+          elevation: data.elevation ?? data.weather?.modelElevation ?? 0,
+          slopeAngle: data.slopeAngle ?? 0,
+          aspect: (data.slopeAngle ?? 0) > 30 ? 'North-East Chute' : ((data.elevation ?? 0) <= 0 ? 'Sea Level Marine' : 'Valley Floor'),
           hiAvalEvents: 0,
           avalancheRisk: data.avalancheRisk,
           floodRisk: data.floodRisk,
@@ -364,7 +364,7 @@ export default function VillageMap({
                     <div className="grid grid-cols-2 gap-2 text-xs text-earth-900 mb-2.5">
                       <div className="bg-earth-100/90 p-2 rounded-lg">
                         <span className="text-xs text-earth-600 font-medium block">Est. Elevation</span>
-                        <span className="font-bold text-sm text-earth-950">{customPin.data.elevation || customPin.data.weather?.modelElevation || 2850}m</span>
+                        <span className="font-bold text-sm text-earth-950">{customPin.data.elevation ?? customPin.data.weather?.modelElevation ?? 0}m</span>
                       </div>
                       <div className="bg-earth-100/90 p-2 rounded-lg">
                         <span className="text-xs text-earth-600 font-medium block">Slope Angle (DEM)</span>

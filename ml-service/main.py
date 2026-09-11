@@ -30,17 +30,17 @@ app.add_middleware(
 # 1. Request schema supports the existing five-field sandbox and the trained
 #    model's nine weather features.
 class PredictRequest(BaseModel):
-    snow_depth: float = Field(default=40.0, description="Snowpack depth in centimeters (legacy input)", ge=0, le=500)
+    snow_depth: float = Field(default=40.0, description="Snowpack depth in centimeters (legacy input)", ge=0, le=5000)
     slope_angle: float = Field(default=38.0, description="Terrain slope inclination in degrees", ge=0, le=90)
-    wind_speed: float = Field(default=20.0, description="Wind speed in km/h", ge=0, le=200)
-    temperature: float = Field(default=-3.0, description="Surface temperature in Celsius", ge=-50, le=40)
-    rainfall: float = Field(default=0.0, description="24h liquid rainfall in mm", ge=0, le=300)
-    temperature_C: Optional[float] = Field(default=None, ge=-100, le=100)
-    dewpoint_C: Optional[float] = Field(default=None, ge=-100, le=100)
-    precip_mm: Optional[float] = Field(default=None, ge=0, le=1000)
-    snowfall_mm: Optional[float] = Field(default=None, ge=0, le=1000)
-    snow_depth_mm: Optional[float] = Field(default=None, ge=0, le=10000)
-    pressure_hPa: Optional[float] = Field(default=None, ge=500, le=1100)
+    wind_speed: float = Field(default=20.0, description="Wind speed in km/h", ge=0, le=500)
+    temperature: float = Field(default=-3.0, description="Surface temperature in Celsius", ge=-100, le=80)
+    rainfall: float = Field(default=0.0, description="24h liquid rainfall in mm", ge=0, le=2000)
+    temperature_C: Optional[float] = Field(default=None, ge=-120, le=100)
+    dewpoint_C: Optional[float] = Field(default=None, ge=-120, le=100)
+    precip_mm: Optional[float] = Field(default=None, ge=0, le=2000)
+    snowfall_mm: Optional[float] = Field(default=None, ge=0, le=2000)
+    snow_depth_mm: Optional[float] = Field(default=None, ge=0, le=100000)
+    pressure_hPa: Optional[float] = Field(default=None, ge=200, le=1200)
     relative_humidity: Optional[float] = Field(default=None, ge=0, le=100)
     month: Optional[int] = Field(default=None, ge=1, le=12)
 
@@ -158,19 +158,29 @@ def reload_model():
     }
 
 def build_model_features(data: PredictRequest) -> list[float]:
-    """Build the exact feature order used during avalanche model training."""
+    """Build the exact feature order used during avalanche model training with physical clipping."""
+    temp = data.temperature_C if data.temperature_C is not None else data.temperature
+    dew = data.dewpoint_C if data.dewpoint_C is not None else (temp - 2.0)
+    precip = data.precip_mm if data.precip_mm is not None else data.rainfall
+    snowfall = data.snowfall_mm if data.snowfall_mm is not None else 0.0
+    snow_depth_mm = data.snow_depth_mm if data.snow_depth_mm is not None else (data.snow_depth * 10.0)
+    pressure = data.pressure_hPa if data.pressure_hPa is not None else MODEL_FEATURE_DEFAULTS["pressure_hPa"]
+    wind = data.wind_speed if data.wind_speed is not None else MODEL_FEATURE_DEFAULTS["wind_speed"]
+    rh = data.relative_humidity if data.relative_humidity is not None else MODEL_FEATURE_DEFAULTS["relative_humidity"]
+    month = data.month if data.month is not None else MODEL_FEATURE_DEFAULTS["month"]
+
     values = {
-        "temperature_C": data.temperature_C if data.temperature_C is not None else data.temperature,
-        "dewpoint_C": data.dewpoint_C if data.dewpoint_C is not None else data.temperature - 2.0,
-        "precip_mm": data.precip_mm if data.precip_mm is not None else data.rainfall,
-        "snowfall_mm": data.snowfall_mm if data.snowfall_mm is not None else 0.0,
-        "snow_depth_mm": data.snow_depth_mm if data.snow_depth_mm is not None else data.snow_depth * 10.0,
-        "pressure_hPa": data.pressure_hPa,
-        "wind_speed": data.wind_speed,
-        "relative_humidity": data.relative_humidity,
-        "month": data.month
+        "temperature_C": float(np.clip(temp, -90.0, 60.0)),
+        "dewpoint_C": float(np.clip(dew, -95.0, 55.0)),
+        "precip_mm": float(np.clip(precip, 0.0, 2000.0)),
+        "snowfall_mm": float(np.clip(snowfall, 0.0, 2000.0)),
+        "snow_depth_mm": float(np.clip(snow_depth_mm, 0.0, 50000.0)),
+        "pressure_hPa": float(np.clip(pressure, 250.0, 1150.0)),
+        "wind_speed": float(np.clip(wind, 0.0, 400.0)),
+        "relative_humidity": float(np.clip(rh, 0.0, 100.0)),
+        "month": int(np.clip(month, 1, 12))
     }
-    return [float(values[name] if values[name] is not None else MODEL_FEATURE_DEFAULTS[name]) for name in FEATURE_NAMES]
+    return [float(values[name]) for name in FEATURE_NAMES]
 
 @app.post("/predict")
 def predict(data: PredictRequest):
@@ -192,15 +202,14 @@ def predict(data: PredictRequest):
                 raw_pred = model.predict(dmatrix)
                 raw_prediction = float(raw_pred[0])
                 
-                # Extract per-sample TreeSHAP attribution
+                # Extract per-sample TreeSHAP attribution (magnitude of Shapley impact)
                 try:
                     contribs = model.predict(dmatrix, pred_contribs=True)[0][:len(FEATURE_NAMES)]
-                    pos_c = np.maximum(0, contribs)
-                    if pos_c.sum() > 0:
-                        local_w = pos_c / pos_c.sum()
+                    abs_c = np.abs(contribs)
+                    if abs_c.sum() > 0:
+                        local_w = abs_c / abs_c.sum()
                     else:
-                        abs_c = np.abs(contribs)
-                        local_w = abs_c / (abs_c.sum() or 1.0)
+                        local_w = np.ones(len(FEATURE_NAMES)) / len(FEATURE_NAMES)
                 except Exception:
                     local_w = np.ones(len(FEATURE_NAMES)) / len(FEATURE_NAMES)
                 
@@ -228,14 +237,23 @@ def predict(data: PredictRequest):
                 importances = [1.0 / len(FEATURE_NAMES)] * len(FEATURE_NAMES)
 
             # Terrain & Physics Synthesis:
-            # 1. If snowpack is negligible (< 5cm), slab release is physically minimal.
-            if data.snow_depth < 5.0:
+            # 1. If slope angle is flat / horizontal (< 5.0 deg) e.g. lakes, ocean, or plains:
+            # Avalanches require gravitational shear (tau = rho * g * h * sin(theta)); at theta < 5 deg, release is physically impossible.
+            if data.slope_angle <= 0.0:
+                score = 0.0
+            elif data.slope_angle < 5.0:
+                score = round(float(np.clip((data.slope_angle / 5.0) * 3.0, 0.0, 4.0)), 1)
+            elif data.snow_depth < 5.0:
+                # 2. If snowpack is negligible (< 5cm), slab release is physically minimal.
                 score = round(float(np.clip(3.0 + (data.slope_angle / 45.0) * 4.0 + (raw_prediction * 25.0), 3.0, 14.0)), 1)
             else:
-                # 2. Calibrated ML probability modulated by DEM slope angle (30°-45° prime zone)
+                # 3. Calibrated ML probability modulated by DEM slope angle (30°-45° prime zone)
                 base_score = 10.0 + (raw_prediction ** 0.5) * 110.0
                 slope_mult = 1.15 if (32.0 <= data.slope_angle <= 45.0) else (1.0 if (26.0 <= data.slope_angle <= 50.0) else 0.82)
-                score = round(float(np.clip(base_score * slope_mult, 8.0, 99.0)), 1)
+                
+                # Physical wind slab loading bonus for high alpine winds (>40 km/h) transporting snow onto slopes
+                wind_slab_bonus = min(18.0, max(0.0, (data.wind_speed - 40.0) * 0.12)) if (data.snow_depth >= 15.0 and data.slope_angle >= 20.0) else 0.0
+                score = round(float(np.clip((base_score * slope_mult) + wind_slab_bonus, 8.0, 99.0)), 1)
 
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Model inference failed: {str(err)}")
@@ -275,7 +293,11 @@ def predict(data: PredictRequest):
     ranked_factors.sort(key=lambda x: x["importance"], reverse=True)
 
     # Physical explanation
-    if data.snow_depth < 5.0:
+    if data.slope_angle <= 0.0:
+        explanation = "Non-applicable hazard: Horizontal ground / water surface (slope: 0°). Avalanche release cannot occur."
+    elif data.slope_angle < 5.0:
+        explanation = f"Minimal hazard: Flat terrain (slope: {data.slope_angle}°). Insufficient gravitational shear stress for slab release."
+    elif data.snow_depth < 5.0:
         explanation = f"Negligible avalanche hazard: Ground is clear of snowpack ({data.snow_depth}cm). Slope is currently stable."
     elif level == "High":
         explanation = f"Critical hazard alert: {ranked_factors[0]['name']} is primary driver. Slope at {data.slope_angle}° falls in acute shear zone."

@@ -294,6 +294,27 @@ export function calculateSimulatedRisk({
   temperature = -2.5,
   rainfall = 0
 }) {
+  // 1. If slope is horizontal (slope <= 0), avalanche is physically impossible
+  if (slope_angle <= 0) {
+    return {
+      avalancheRisk: { score: 0.0, level: 'Low' },
+      floodRisk: {
+        score: rainfall > 25 ? Math.min(50, Math.round(rainfall * 0.9)) : 0,
+        level: rainfall > 25 ? 'Moderate' : 'Low'
+      },
+      topFactors: [
+        { name: 'Horizontal / Water Surface', importance: 1.0 }
+      ],
+      explanation: 'Horizontal ground / water surface (slope: 0°). Avalanche release cannot occur.'
+    };
+  }
+
+  // 2. Hydrological flood risk calculation (Liquid rain + thermal snowmelt only if snow exists)
+  const floodScore = Math.min(95, Math.max(5, Math.round(
+    rainfall * 1.4 + (snow_depth > 5 && temperature > 0 ? Math.min(20, temperature * 0.6) : 0) + 5
+  )));
+  const floodLevel = floodScore >= 70 ? 'High' : (floodScore >= 35 ? 'Moderate' : 'Low');
+
   // If no snow on the ground, avalanche release is physically negligible —
   // but vary 3-14 with slope/wind/temp so every pin does NOT read flat 3.
   if (snow_depth < 5) {
@@ -305,7 +326,7 @@ export function calculateSimulatedRisk({
     const score = Math.round(Math.min(14, Math.max(3, 3 + slopeF + windF + tempF + rainF + snowF)) * 10) / 10;
     return {
       avalancheRisk: { score, level: 'Low' },
-      floodRisk: { score: Math.min(95, Math.max(10, Math.round(rainfall * 2.2 + Math.max(0, temperature * 1.5)))), level: rainfall > 25 ? 'High' : 'Low' },
+      floodRisk: { score: floodScore, level: floodLevel },
       topFactors: [
         { name: 'Slope Angle Criticality', importance: 0.40 },
         { name: 'Wind Slab Potential', importance: 0.25 },
@@ -443,11 +464,17 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
           const eJson = await eRes.json();
           const ev = eJson.elevation;
           if (Array.isArray(ev) && ev.length >= 3 && ev.every((x) => x != null)) {
-            const latRad = (parseFloat(lat) * Math.PI) / 180;
-            const mLat = 111320, mLng = 111320 * Math.max(0.2, Math.cos(latRad));
-            const gN = (ev[1] - ev[0]) / (d * mLat);
-            const gE = (ev[2] - ev[0]) / (d * mLng);
-            estSlope = Math.max(15, Math.min(55, Math.round(((Math.atan(Math.sqrt(gN * gN + gE * gE)) * 180) / Math.PI) * 10) / 10));
+            const isOcean = ev[0] <= 0 || (ev[0] <= 2 && Math.abs(ev[1] - ev[0]) < 0.25 && Math.abs(ev[2] - ev[0]) < 0.25);
+            const isFlat = Math.abs(ev[1] - ev[0]) < 0.15 && Math.abs(ev[2] - ev[0]) < 0.15;
+            if (isOcean || isFlat) {
+              estSlope = 0.0;
+            } else {
+              const latRad = (parseFloat(lat) * Math.PI) / 180;
+              const mLat = 111320, mLng = 111320 * Math.max(0.2, Math.cos(latRad));
+              const gN = (ev[1] - ev[0]) / (d * mLat);
+              const gE = (ev[2] - ev[0]) / (d * mLng);
+              estSlope = Math.max(0, Math.min(55, Math.round(((Math.atan(Math.sqrt(gN * gN + gE * gE)) * 180) / Math.PI) * 10) / 10));
+            }
           }
         }
       } catch (_e) {}
@@ -465,7 +492,7 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
         coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) },
         slopeAngle: useSlope,
         slopeSource: 'live-satellite-direct',
-        elevation: p.modelElev ?? Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
+        elevation: p.modelElev != null ? Math.max(0, Math.round(p.modelElev)) : (parseFloat(lat) < 24 ? 0 : 1500),
         ...simulated,
         weather: {
           temperature: p.temp,

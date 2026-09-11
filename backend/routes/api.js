@@ -10,6 +10,74 @@ const predictionCache = new Map();
 const CACHE_TTL_MS = 3 * 60 * 1000;
 
 /**
+ * Hydrological Flash Flood / GLOF Risk Engine
+ * Based on liquid volume inflow (rainfall + thermal snowmelt), terrain channeling, and marine exclusion.
+ */
+function calculateHydrologicalFloodRisk({
+  rainfall = 0,
+  temperature = 15,
+  snowDepth = 0,
+  slopeAngle = 20,
+  elevation = 1500,
+  isOcean = false,
+  isWaterBody = false
+}) {
+  // 1. Open ocean or sea level surface (elevation <= 0 or marine):
+  // Terrestrial riverine and flash floods are physically non-applicable on the open sea.
+  if (isOcean || elevation <= 0) {
+    return {
+      score: 0,
+      level: 'Low',
+      details: 'Open Ocean / Marine Surface: Terrestrial overland flash flood risk is non-applicable.'
+    };
+  }
+
+  // 2. Liquid Rain Inflow (Primary driver of flash flooding)
+  const rain = Math.max(0, Number(rainfall) || 0);
+  let rainPoints = 0;
+  if (rain > 0) {
+    if (rain <= 15) {
+      rainPoints = rain * 1.2; // up to 18
+    } else if (rain <= 50) {
+      rainPoints = 18 + (rain - 15) * 1.1; // up to 56.5
+    } else {
+      rainPoints = 56.5 + Math.min(30, (rain - 50) * 0.6); // up to 86.5
+    }
+  }
+
+  // 3. Thermal Snowmelt (ONLY when snowpack exists AND temperature > 0 C):
+  // Warm weather on dry bare ground does NOT produce liquid flood runoff!
+  let meltPoints = 0;
+  const temp = Number(temperature) || 0;
+  const snow = Math.max(0, Number(snowDepth) || 0);
+  if (snow > 5 && temp > 0) {
+    const snowFactor = Math.min(1.0, snow / 40.0);
+    const tempFactor = Math.min(1.0, temp / 18.0);
+    meltPoints = 20.0 * snowFactor * tempFactor;
+  }
+
+  // 4. Steep slope drainage funnel multiplier (only applies when liquid runoff exists):
+  let slopeMultiplier = 1.0;
+  if (slopeAngle >= 25 && slopeAngle <= 45) {
+    slopeMultiplier = 1.2;
+  } else if (slopeAngle < 8) {
+    slopeMultiplier = 0.85;
+  }
+
+  const combinedWaterInflow = (rainPoints + meltPoints) * slopeMultiplier;
+  const finalScore = Math.min(98, Math.max(5, Math.round(5.0 + combinedWaterInflow)));
+  const level = finalScore >= 70 ? 'High' : (finalScore >= 35 ? 'Moderate' : 'Low');
+
+  return {
+    score: finalScore,
+    level,
+    details: rain > 25
+      ? `Heavy rainfall (${rain}mm) elevating mountain runoff risk.`
+      : (meltPoints > 8 ? `Thermal snowpack melt contributing to drainage volume.` : 'Normal stable drainage conditions.')
+  };
+}
+
+/**
  * Helper to compute full risk for a single village
  */
 async function computeVillageTelemetry(village, weatherOverride = null, forceRefresh = false) {
@@ -39,11 +107,16 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
     month: weather.observationTime ? new Date(weather.observationTime).getMonth() + 1 : undefined
   });
 
-  // 3. Estimate Flash Flood / GLOF Risk
-  let floodRaw = (weather.rainfall ?? 0) * 2.2 + Math.max(0, weather.temperature * 1.8);
-  if (village.slopeAngle > 35) floodRaw *= 1.25;
-  const floodScore = Math.min(95, Math.max(8, Math.round(floodRaw + 10)));
-  const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
+  // 3. Hydrological Flash Flood / GLOF Risk (Physics-based water volume inflow)
+  const floodCalc = calculateHydrologicalFloodRisk({
+    rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+    temperature: weather.temperature,
+    snowDepth: weather.snow_depth ?? weather.snowDepth ?? 0,
+    slopeAngle: village.slopeAngle,
+    elevation: village.elevation,
+    isOcean: false,
+    isWaterBody: false
+  });
 
   const fullData = {
     id: village.id,
@@ -65,8 +138,9 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
       level: mlOutput.level
     },
     floodRisk: {
-      score: floodScore,
-      level: floodLevel
+      score: floodCalc.score,
+      level: floodCalc.level,
+      details: floodCalc.details
     },
     weather: {
       temperature: weather.temperature,
@@ -171,40 +245,84 @@ router.post('/predict-coordinate', async (req, res) => {
       return res.status(400).json({ error: 'Coordinates (lat, lng) are required.' });
     }
 
-    // Always fetch fresh real-time satellite data for clicked points
-    // No DEM elevation known for arbitrary point, so no lapse correction (raw model temp)
-    const weather = await getLiveWeather(parseFloat(lat), parseFloat(lng), true, null);
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
 
-    // Real slope per coordinate: use caller value if explicitly given,
-    // else estimate from Open-Meteo elevation grid (varies per point, never fixed 36)
+    // 1. Get real terrain elevation & slope from Open-Meteo DEM
+    const terrain = await getTerrainSlope(latitude, longitude);
+
+    // 2. Fetch fresh real-time satellite data for clicked points
+    const weather = await getLiveWeather(latitude, longitude, true, terrain.elevation);
+
+    // Real elevation from DEM / model grid (sea level is 0m, not 1200m)
+    const rawElev = terrain.elevation ?? weather.modelElevation;
+    const elevation = rawElev != null ? Math.max(0, Math.round(rawElev)) : (latitude < 24 && (longitude < 73 || longitude > 88) ? 0 : 1500);
+
+    const isOcean = terrain.isOcean || elevation <= 0;
+    const isWaterBody = terrain.isWaterBody || isOcean;
+
+    // Real slope per coordinate
     let slopeAngle = parseFloat(slope_angle);
     let slopeSource = 'user-provided';
     if (slope_angle === undefined || slope_angle === null || slope_angle === '' || Number.isNaN(slopeAngle)) {
-      const est = await getTerrainSlope(parseFloat(lat), parseFloat(lng));
-      slopeAngle = est.slopeAngle;
-      slopeSource = est.source;
+      slopeAngle = terrain.slopeAngle;
+      slopeSource = terrain.source;
+    }
+    if (isOcean) {
+      slopeAngle = 0.0;
     }
 
-    const mlOutput = await predictRisk({
-      snow_depth: weather.snow_depth ?? weather.snowDepth ?? 0,
-      slope_angle: slopeAngle,
-      wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
-      temperature: weather.temperature,
-      rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
-      temperature_C: weather.temperature_C,
-      dewpoint_C: weather.dewpoint_C,
-      precip_mm: weather.precip_mm,
-      snowfall_mm: weather.snowfall_mm,
-      snow_depth_mm: (weather.snow_depth ?? weather.snowDepth ?? 0) * 10,
-      pressure_hPa: weather.pressure_hPa,
-      relative_humidity: weather.relative_humidity,
-      month: weather.observationTime ? new Date(weather.observationTime).getMonth() + 1 : undefined
-    });
+    // 3. Avalanche Risk Computation with Marine / Water Body Physical Guard
+    let mlOutput = null;
+    if (isOcean) {
+      mlOutput = {
+        score: 0.0,
+        level: 'Low',
+        topFactors: [
+          { name: 'Marine Surface', feature: 'water_body', importance: 1.0 }
+        ],
+        explanation: 'Open Ocean / Marine Surface: Avalanche hazard is physically non-applicable over water.',
+        source: 'marine-physics-guard'
+      };
+    } else if (isWaterBody && slopeAngle < 5.0) {
+      mlOutput = {
+        score: 0.0,
+        level: 'Low',
+        topFactors: [
+          { name: 'Water Body Surface', feature: 'water_body', importance: 0.90 },
+          { name: 'Zero Shear Inclination', feature: 'slope_angle', importance: 0.10 }
+        ],
+        explanation: 'Inland Water Body (Flat Surface): Avalanche release cannot occur on horizontal water surfaces.',
+        source: 'water-body-guard'
+      };
+    } else {
+      mlOutput = await predictRisk({
+        snow_depth: weather.snow_depth ?? weather.snowDepth ?? 0,
+        slope_angle: slopeAngle,
+        wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
+        temperature: weather.temperature,
+        rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+        temperature_C: weather.temperature_C,
+        dewpoint_C: weather.dewpoint_C,
+        precip_mm: weather.precip_mm,
+        snowfall_mm: weather.snowfall_mm,
+        snow_depth_mm: (weather.snow_depth ?? weather.snowDepth ?? 0) * 10,
+        pressure_hPa: weather.pressure_hPa,
+        relative_humidity: weather.relative_humidity,
+        month: weather.observationTime ? new Date(weather.observationTime).getMonth() + 1 : undefined
+      });
+    }
 
-    let floodRaw = (weather.rainfall ?? 0) * 2.2 + Math.max(0, weather.temperature * 1.8);
-    if (slopeAngle > 35) floodRaw *= 1.25;
-    const floodScore = Math.min(95, Math.max(8, Math.round(floodRaw + 10)));
-    const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
+    // 4. Hydrological Flash Flood Risk (Physics-based water volume inflow)
+    const floodCalc = calculateHydrologicalFloodRisk({
+      rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+      temperature: weather.temperature,
+      snowDepth: weather.snow_depth ?? weather.snowDepth ?? 0,
+      slopeAngle,
+      elevation,
+      isOcean,
+      isWaterBody
+    });
 
     const normalizedWeather = {
       temperature: weather.temperature,
@@ -228,18 +346,20 @@ router.post('/predict-coordinate', async (req, res) => {
     };
 
     const result = {
-      coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) },
+      coordinates: { lat: latitude, lng: longitude },
       slopeAngle,
       slopeSource,
-      // Use real model grid elevation when available, else estimate
-      elevation: weather.modelElevation ?? Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
+      elevation,
+      isOcean,
+      isWaterBody,
       avalancheRisk: {
         score: mlOutput.score,
         level: mlOutput.level
       },
       floodRisk: {
-        score: floodScore,
-        level: floodLevel
+        score: floodCalc.score,
+        level: floodCalc.level,
+        details: floodCalc.details
       },
       weather: normalizedWeather,
       topFactors: mlOutput.topFactors,
@@ -285,10 +405,15 @@ router.post('/simulate', async (req, res) => {
       rainfall
     });
 
-    let floodRaw = rainfall * 1.8 + Math.max(0, temperature * 2.2);
-    if (slope_angle > 35) floodRaw *= 1.2;
-    const floodScore = Math.min(98, Math.max(10, parseFloat(floodRaw.toFixed(1))));
-    const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
+    const floodCalc = calculateHydrologicalFloodRisk({
+      rainfall,
+      temperature,
+      snowDepth: snow_depth,
+      slopeAngle: slope_angle,
+      elevation: 2000,
+      isOcean: false,
+      isWaterBody: false
+    });
 
     res.json({
       avalancheRisk: {
@@ -296,8 +421,9 @@ router.post('/simulate', async (req, res) => {
         level: mlOutput.level
       },
       floodRisk: {
-        score: floodScore,
-        level: floodLevel
+        score: floodCalc.score,
+        level: floodCalc.level,
+        details: floodCalc.details
       },
       topFactors: mlOutput.topFactors,
       explanation: mlOutput.explanation,
