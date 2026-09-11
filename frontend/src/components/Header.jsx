@@ -13,9 +13,9 @@ export default function Header({
   onRefresh
 }) {
   return (
-    <header className="sticky top-4 sm:top-5 z-[100] w-full px-4 sm:px-8 max-w-[1600px] mx-auto">
+    <header className="sticky top-4 sm:top-5 z-[100] w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Floating Island Container - Slim Horizontal Capsule */}
-      <div className="bg-earth-900/95 backdrop-blur-xl border border-earth-800/90 shadow-xl shadow-earth-950/25 rounded-full px-5 sm:px-8 py-2.5 transition-all">
+      <div className="bg-earth-900/95 backdrop-blur-xl border border-earth-800/90 shadow-xl shadow-earth-950/25 rounded-full px-4 sm:px-6 py-2 transition-all">
         <div className="flex items-center justify-between gap-4 w-full">
           
           {/* 1. Left: Brand & Live Indicator (Single Line) */}

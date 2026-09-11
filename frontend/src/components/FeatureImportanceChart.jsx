@@ -117,32 +117,32 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   };
 
   return (
-    <div className="bg-earth-50 rounded-2xl p-6 border border-earth-200 shadow-sm space-y-5 h-full flex flex-col justify-between">
+    <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-4 h-full flex flex-col justify-between">
       
       {/* Header */}
       <div className="border-b border-earth-200 pb-3">
-        <div className="flex items-center gap-2">
-          <Brain className="w-4 h-4 text-terracotta-600" />
-          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700 font-heading">
+        <div className="flex items-center gap-1.5">
+          <Brain className="w-3.5 h-3.5 text-terracotta-600" />
+          <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700 font-heading">
             Model Explainability
           </span>
         </div>
-        <h3 className="font-heading text-xl sm:text-2xl font-bold text-earth-900 mt-0.5">
+        <h3 className="font-heading text-lg sm:text-xl font-bold text-earth-900 mt-0.5">
           Key Contributing Hazard Drivers
         </h3>
-        <p className="text-xs sm:text-sm text-earth-700 font-medium">
+        <p className="text-xs text-earth-700 font-medium">
           Feature-importance decomposition from the predictive model for {villageName}
         </p>
       </div>
 
       {/* Chart.js Container */}
-      <div className="w-full h-56 bg-white p-3 rounded-xl border border-earth-200/80 shadow-inner">
+      <div className="w-full h-48 sm:h-52 bg-white p-2.5 rounded-xl border border-earth-200/80 shadow-inner">
         <Bar data={chartData} options={chartOptions} />
       </div>
 
       {/* Narrative Breakdown for Local Officials / Judges */}
-      <div className="space-y-2.5">
-        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-earth-800 flex items-center gap-1.5 font-heading">
+      <div className="space-y-2">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-earth-800 flex items-center gap-1.5 font-heading">
           <span>Physical Factor Interpretation</span>
         </h4>
 
@@ -150,22 +150,22 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
           {sortedFactors.slice(0, 3).map((factor, idx) => (
             <div
               key={factor.name}
-              className="bg-white p-3.5 rounded-xl border border-earth-200/70 text-xs sm:text-sm flex items-start gap-3 shadow-sm hover:border-earth-300 transition-colors"
+              className="bg-white p-3 rounded-xl border border-earth-200/70 text-xs flex items-start gap-2.5 shadow-sm hover:border-earth-300 transition-colors"
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5 font-heading"
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 mt-0.5 font-heading"
                 style={{ backgroundColor: backgroundColors[idx] }}
               >
                 {idx + 1}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-earth-900 text-sm sm:text-base font-heading truncate">{factor.name}</span>
-                  <span className="font-mono font-bold text-terracotta-700 text-xs sm:text-sm">
+                  <span className="font-bold text-earth-900 text-xs sm:text-sm font-heading truncate">{factor.name}</span>
+                  <span className="font-mono font-bold text-terracotta-700 text-xs">
                     {(factor.importance * 100).toFixed(1)}% influence
                   </span>
                 </div>
-                <p className="text-earth-700 mt-1 leading-relaxed text-xs sm:text-sm font-normal">
+                <p className="text-earth-700 mt-0.5 leading-relaxed text-xs font-normal">
                   {getFactorExplanation(factor.name, idx)}
                 </p>
               </div>

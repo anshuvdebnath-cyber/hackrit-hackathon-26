@@ -87,7 +87,7 @@ export default function App() {
       />
 
       {/* Main Content Area with generous width and spacing */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 pt-6 sm:pt-8 pb-12 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 space-y-6">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
@@ -98,7 +98,7 @@ export default function App() {
           <>
             {/* TAB 1: Live Risk Map & Village Overview */}
             {activeTab === 'map' && (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 
                 {/* 1. Leaflet Interactive Map */}
                 <section>
@@ -111,10 +111,10 @@ export default function App() {
 
                 {/* 2. Detailed Sector Telemetry & Explainability */}
                 {selectedVillage && (
-                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
                     
                     {/* Left Column: Risk Gauge & Environmental Telemetry (7 cols) */}
-                    <div className="lg:col-span-7 space-y-8 flex flex-col justify-between">
+                    <div className="lg:col-span-7 space-y-6 flex flex-col justify-between">
                       <RiskGauge village={selectedVillage} />
                       <WeatherTerrainCards village={selectedVillage} />
                     </div>
@@ -155,8 +155,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-earth-900 text-earth-400 text-xs py-8 border-t border-earth-800 mt-12">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="bg-earth-900 text-earth-400 text-xs py-6 border-t border-earth-800 mt-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2.5">
             <div className="w-7 h-7 rounded-lg bg-terracotta-500/20 text-terracotta-400 flex items-center justify-center">
               <Mountain className="w-4 h-4" />

@@ -177,10 +177,10 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
   };
 
   return (
-    <div className="relative isolate z-0 w-full h-[580px] lg:h-[620px] rounded-2xl sm:rounded-3xl overflow-hidden border border-earth-300/80 shadow-xl bg-earth-200">
+    <div className="relative isolate z-0 w-full h-[460px] sm:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden border border-earth-300/80 shadow-lg bg-earth-200">
       
       {/* Top Map Toolbar */}
-      <div className="absolute top-3 left-3 z-[400] bg-earth-900/95 backdrop-blur-md text-earth-100 px-4 py-2.5 rounded-xl border border-earth-700/90 shadow-md flex items-center gap-3 text-xs sm:text-sm pointer-events-auto">
+      <div className="absolute top-3 left-3 z-[400] bg-earth-900/90 backdrop-blur-sm text-earth-100 px-3.5 py-2 rounded-xl border border-earth-700/80 shadow-md flex items-center gap-3 text-xs pointer-events-auto">
         <div className="flex items-center gap-2 font-bold text-terracotta-300">
           <Mountain className="w-4 h-4" />
           <span>Himalayan Risk Geoscope</span>
