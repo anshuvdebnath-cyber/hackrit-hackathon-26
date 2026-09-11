@@ -86,8 +86,8 @@ export default function App() {
         onRefresh={handleRefresh}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      {/* Main Content Area with generous top distance from floating navbar */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-12 space-y-8">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
