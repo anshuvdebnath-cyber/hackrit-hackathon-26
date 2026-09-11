@@ -117,7 +117,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-8 space-y-5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-10 space-y-6">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
@@ -128,7 +128,7 @@ export default function App() {
           <>
             {/* TAB 1: Live Risk Map & Village Overview */}
             {activeTab === 'map' && (
-              <div className="space-y-5">
+              <div className="space-y-6">
                 
                 {/* Evaluating Coordinate Notice Banner */}
                 {isEvaluatingCoordinate && (
@@ -146,7 +146,7 @@ export default function App() {
                 )}
 
                 {/* 1. Leaflet Interactive Map */}
-                <section>
+                <section className="pt-1 sm:pt-2">
                   <VillageMap
                     villages={villages}
                     selectedVillageId={selectedVillageId}
