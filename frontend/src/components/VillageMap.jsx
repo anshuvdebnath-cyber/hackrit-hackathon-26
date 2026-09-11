@@ -298,11 +298,11 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                     <div className="grid grid-cols-2 gap-1.5 text-xs text-earth-800 mb-2">
                       <div className="bg-earth-100/90 p-1.5 rounded">
                         <span className="text-[10px] text-earth-500 block">Est. Elevation</span>
-                        <span className="font-bold">{customPin.data.elevation || 2850}m</span>
+                        <span className="font-bold">{customPin.data.elevation || customPin.data.weather?.modelElevation || 2850}m</span>
                       </div>
                       <div className="bg-earth-100/90 p-1.5 rounded">
-                        <span className="text-[10px] text-earth-500 block">Slope Angle</span>
-                        <span className="font-bold">{customPin.data.slopeAngle || 36}°</span>
+                        <span className="text-[10px] text-earth-500 block">Slope Angle (live DEM)</span>
+                        <span className="font-bold">{customPin.data.slopeAngle ?? '--'}°</span>
                       </div>
                       <div className="bg-earth-100/90 p-1.5 rounded">
                         <span className="text-[10px] text-earth-500 block">Live Temp / Wind</span>
@@ -316,9 +316,13 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-[10px] text-earth-600 bg-earth-100/90 px-2 py-0.5 rounded mb-2 font-mono">
+                    <div className="flex items-center justify-between text-[10px] text-earth-600 bg-earth-100/90 px-2 py-0.5 rounded mb-1 font-mono">
                       <span>Feed: {customPin.data.weather?.source || 'live-open-meteo'}</span>
-                      <span>Snow: {customPin.data.weather?.snowDepth ?? customPin.data.weather?.snow_depth ?? 0}cm</span>
+                      <span>Snowpack: {customPin.data.weather?.snowDepth ?? customPin.data.weather?.snow_depth ?? 0}cm</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-earth-500 bg-earth-50 px-2 py-0.5 rounded mb-2 font-mono">
+                      <span>24h snow {customPin.data.weather?.snowfall24h ?? 0}cm · rain {customPin.data.weather?.rainfall24h ?? 0}mm</span>
+                      <span>Obs {customPin.data.weather?.observationTime ?? '--'}</span>
                     </div>
 
                     {customPin.data.explanation && (

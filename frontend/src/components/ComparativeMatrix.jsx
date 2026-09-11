@@ -161,7 +161,7 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                       {village.name}
                     </div>
                     <div className="text-[11px] text-earth-500">
-                      {village.region} � {village.district}
+                      {village.region} · {village.district}
                     </div>
                   </td>
 
@@ -177,7 +177,7 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                         ? 'bg-clay-100 text-clay-800'
                         : 'bg-earth-100 text-earth-700'
                     }`}>
-                      {village.slopeAngle}�
+                      {village.slopeAngle}°
                     </span>
                   </td>
 
@@ -215,14 +215,17 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                     </div>
                   </td>
 
-                  {/* Weather */}
+                  {/* Weather — live Open-Meteo telemetry per village */}
                   <td className="py-3.5 px-3">
                     <div className="text-[11px]">
-                      <span>{village.weather?.temperature}�C</span> �{' '}
-                      <span className="font-semibold text-blue-700">{village.weather?.snowfall24h}cm snow</span>
+                      <span>{village.weather?.temperature}°C</span> ·{' '}
+                      <span className="font-semibold text-blue-700">{village.weather?.snowfall24h ?? village.weather?.snowfall_24h ?? 0}cm snow/24h</span>
                     </div>
                     <div className="text-[10px] text-earth-500">
-                      {village.weather?.windSpeed} km/h wind
+                      pack {village.weather?.snowDepth ?? village.weather?.snow_depth ?? 0}cm · rain {village.weather?.rainfall24h ?? village.weather?.rainfall ?? 0}mm · {village.weather?.windSpeed ?? village.weather?.wind_speed ?? 0} km/h wind
+                    </div>
+                    <div className="text-[10px] font-mono text-earth-400">
+                      {village.weather?.observationTime ?? ''} · {village.weather?.source ?? ''}
                     </div>
                   </td>
 

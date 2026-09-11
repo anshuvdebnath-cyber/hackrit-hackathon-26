@@ -64,6 +64,53 @@ async function tryFetchPost(endpoint, body, timeoutMs = 6000) {
 }
 
 /**
+ * Parse ORIGINAL Open-Meteo live payload (shared by all client fallbacks).
+ * - 24h totals from daily.snowfall_sum / daily.rain_sum (NOT instantaneous current)
+ * - snowpack from hourly.snow_depth matched to current.time (NOT index 0)
+ */
+function parseLiveOpenMeteo(json) {
+  const current = json.current || {};
+  const hourly = json.hourly || {};
+  const daily = json.daily || {};
+  const temp = current.temperature_2m ?? 18.0;
+  const wind = current.wind_speed_10m ?? 8.0;
+  const humidity = current.relative_humidity_2m ?? null;
+  const weatherCode = current.weather_code ?? null;
+  const snowNow = current.snowfall ?? 0;
+  const rainNow = current.rain ?? 0;
+
+  let snow24 = snowNow;
+  let rain24 = rainNow;
+  if (daily.time && Array.isArray(daily.time)) {
+    const today = (current.time || '').slice(0, 10);
+    let di = daily.time.indexOf(today);
+    if (di === -1) di = daily.time.length > 1 ? 1 : 0;
+    if (daily.snowfall_sum?.[di] != null) snow24 = daily.snowfall_sum[di];
+    if (daily.rain_sum?.[di] != null) rain24 = daily.rain_sum[di];
+  }
+
+  let snowPack = 0;
+  if (hourly.snow_depth && Array.isArray(hourly.snow_depth)) {
+    let hi = hourly.time ? hourly.time.indexOf(current.time) : -1;
+    if (hi === -1 && current.time && hourly.time) {
+      const prefix = current.time.slice(0, 13);
+      hi = hourly.time.findIndex((t) => t.slice(0, 13) === prefix);
+    }
+    if (hi === -1) hi = 0;
+    const raw = hourly.snow_depth[hi];
+    if (raw != null && raw > 0) snowPack = Math.round(raw * 100 * 10) / 10;
+  }
+
+  return {
+    temp, wind, humidity, weatherCode, snow24, rain24, snowPack, snowNow, rainNow,
+    obsTime: current.time || null, modelElev: json.elevation ?? null
+  };
+}
+
+const LIVE_PARAMS =
+  'current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,snowfall,rain,precipitation,weather_code,cloud_cover&hourly=snow_depth,temperature_2m&daily=snowfall_sum,rain_sum,snow_depth_max&timezone=auto&past_days=1&forecast_days=2';
+
+/**
  * Direct client-side Open-Meteo satellite fetcher (Zero Backend Dependency Fallback)
  * Guarantees the dashboard ALWAYS shows real-time live satellite data under any circumstance.
  */
@@ -71,30 +118,22 @@ async function fetchDirectOpenMeteoBatch(villages) {
   try {
     const lats = villages.map(v => v.lat).join(',');
     const lngs = villages.map(v => v.lng).join(',');
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,snowfall,rain&hourly=snow_depth&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&${LIVE_PARAMS}`;
     
-    const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       const data = await res.json();
       const results = Array.isArray(data) ? data : [data];
       
       return villages.map((v, i) => {
-        const item = results[i] || {};
-        const current = item.current || {};
-        const hourly = item.hourly || {};
-        const temp = current.temperature_2m !== undefined ? current.temperature_2m : 18.0;
-        const wind = current.wind_speed_10m !== undefined ? current.wind_speed_10m : 6.0;
-        const rain = current.rain !== undefined ? current.rain : 0.0;
-        const snow = (hourly.snow_depth && hourly.snow_depth.length > 0 && hourly.snow_depth[0] > 0)
-          ? Math.round(hourly.snow_depth[0] * 100)
-          : 0;
+        const p = parseLiveOpenMeteo(results[i] || {});
 
         const simulated = calculateSimulatedRisk({
-          snow_depth: snow,
+          snow_depth: p.snowPack,
           slope_angle: v.slopeAngle,
-          wind_speed: wind,
-          temperature: temp,
-          rainfall: rain
+          wind_speed: p.wind,
+          temperature: p.temp,
+          rainfall: p.rain24
         });
 
         return {
@@ -105,14 +144,23 @@ async function fetchDirectOpenMeteoBatch(villages) {
           topFactors: simulated.topFactors,
           explanation: simulated.explanation,
           weather: {
-            temperature: temp,
-            windSpeed: wind,
-            wind_speed: wind,
-            snowfall24h: current.snowfall || 0,
-            rainfall24h: rain,
-            rainfall: rain,
-            snowDepth: snow,
-            snow_depth: snow,
+            temperature: p.temp,
+            temperature_raw: p.temp,
+            temperature_corrected: false,
+            modelElevation: p.modelElev,
+            windSpeed: p.wind,
+            wind_speed: p.wind,
+            humidity: p.humidity,
+            weather_code: p.weatherCode,
+            snowfall24h: p.snow24,
+            snowfall_24h: p.snow24,
+            snowfall_now: p.snowNow,
+            rainfall24h: p.rain24,
+            rainfall: p.rain24,
+            rain_now: p.rainNow,
+            snowDepth: p.snowPack,
+            snow_depth: p.snowPack,
+            observationTime: p.obsTime,
             source: 'live-satellite-direct',
             fetchedAt: new Date().toISOString()
           },
@@ -164,23 +212,18 @@ export async function fetchVillageRisk(villageId, forceRefresh = false) {
   // Direct single village satellite query
   const village = VILLAGES.find(v => v.id === villageId) || VILLAGES[0];
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${village.lat}&longitude=${village.lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,snowfall,rain&hourly=snow_depth&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${village.lat}&longitude=${village.lng}&${LIVE_PARAMS}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const json = await res.json();
-      const current = json.current || {};
-      const hourly = json.hourly || {};
-      const temp = current.temperature_2m ?? 18.0;
-      const wind = current.wind_speed_10m ?? 8.0;
-      const rain = current.rain ?? 0.0;
-      const snow = (hourly.snow_depth && hourly.snow_depth[0] > 0) ? Math.round(hourly.snow_depth[0] * 100) : 0;
+      const p = parseLiveOpenMeteo(json);
 
       const simulated = calculateSimulatedRisk({
-        snow_depth: snow,
+        snow_depth: p.snowPack,
         slope_angle: village.slopeAngle,
-        wind_speed: wind,
-        temperature: temp,
-        rainfall: rain
+        wind_speed: p.wind,
+        temperature: p.temp,
+        rainfall: p.rain24
       });
 
       return {
@@ -191,14 +234,23 @@ export async function fetchVillageRisk(villageId, forceRefresh = false) {
         topFactors: simulated.topFactors,
         explanation: simulated.explanation,
         weather: {
-          temperature: temp,
-          windSpeed: wind,
-          wind_speed: wind,
-          snowfall24h: current.snowfall || 0,
-          rainfall24h: rain,
-          rainfall: rain,
-          snowDepth: snow,
-          snow_depth: snow,
+          temperature: p.temp,
+          temperature_raw: p.temp,
+          temperature_corrected: false,
+          modelElevation: p.modelElev,
+          windSpeed: p.wind,
+          wind_speed: p.wind,
+          humidity: p.humidity,
+          weather_code: p.weatherCode,
+          snowfall24h: p.snow24,
+          snowfall_24h: p.snow24,
+          snowfall_now: p.snowNow,
+          rainfall24h: p.rain24,
+          rainfall: p.rain24,
+          rain_now: p.rainNow,
+          snowDepth: p.snowPack,
+          snow_depth: p.snowPack,
+          observationTime: p.obsTime,
           source: 'live-satellite-direct',
           fetchedAt: new Date().toISOString()
         },
@@ -227,10 +279,17 @@ export function calculateSimulatedRisk({
   temperature = -2.5,
   rainfall = 0
 }) {
-  // If no snow on the ground, avalanche release is physically negligible
+  // If no snow on the ground, avalanche release is physically negligible —
+  // but vary 3-14 with slope/wind/temp so every pin does NOT read flat 3.
   if (snow_depth < 5) {
+    const slopeF = (slope_angle >= 30 && slope_angle <= 45) ? 4.0 : (slope_angle > 45 ? 2.0 : 1.0);
+    const windF = Math.min(3.0, Math.max(0, (wind_speed - 5) * 0.15));
+    const tempF = temperature > 2 ? 1.5 : (temperature < -12 ? 1.0 : 0.5);
+    const rainF = rainfall > 0 ? Math.min(2.5, rainfall * 0.2) : 0;
+    const snowF = Math.max(0, snow_depth * 0.4);
+    const score = Math.round(Math.min(14, Math.max(3, 3 + slopeF + windF + tempF + rainF + snowF)) * 10) / 10;
     return {
-      avalancheRisk: { score: Math.round(Math.min(10, Math.max(3, snow_depth * 1.5))), level: 'Low' },
+      avalancheRisk: { score, level: 'Low' },
       floodRisk: { score: Math.min(95, Math.max(10, Math.round(rainfall * 2.2 + Math.max(0, temperature * 1.5)))), level: rainfall > 25 ? 'High' : 'Low' },
       topFactors: [
         { name: 'Slope Angle Criticality', importance: 0.40 },
@@ -239,7 +298,7 @@ export function calculateSimulatedRisk({
         { name: 'Snow Load Ratio', importance: 0.10 },
         { name: 'Rainfall Destabilization', importance: 0.10 }
       ],
-      explanation: `Negligible avalanche hazard: Ground is clear of snowpack (${snow_depth}cm). Slope is currently stable.`
+      explanation: `Negligible avalanche hazard: Ground is clear of snowpack (${snow_depth}cm). Score ${score}/100 reflects terrain predisposition only (slope ${slope_angle}°).`
     };
   }
 
@@ -333,15 +392,16 @@ export async function simulateScenarioApi({
 }
 
 /**
- * Predict real-time risk for ANY clicked GPS coordinate on the map
+ * Predict real-time risk for ANY clicked GPS coordinate on the map.
+ * slopeAngle omitted => backend estimates real slope from elevation grid.
  */
-export async function predictCustomCoordinate(lat, lng, slopeAngle = 36) {
-  // 1. Try local backend orchestrator
-  const backendResult = await tryFetchPost('/predict-coordinate', {
-    lat: parseFloat(lat),
-    lng: parseFloat(lng),
-    slope_angle: parseFloat(slopeAngle)
-  }, 6000);
+export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
+  // 1. Try local backend orchestrator (no forced slope => real per-point slope)
+  const body = { lat: parseFloat(lat), lng: parseFloat(lng) };
+  if (slopeAngle !== null && slopeAngle !== undefined && slopeAngle !== '') {
+    body.slope_angle = parseFloat(slopeAngle);
+  }
+  const backendResult = await tryFetchPost('/predict-coordinate', body, 6000);
 
   if (backendResult) {
     console.log('[TerraWatch] Real-time coordinate weather fetched via backend:', backendResult.weather);
@@ -351,39 +411,61 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = 36) {
   // 2. Direct client-side satellite query fallback
   console.log(`[TerraWatch] Fetching live satellite telemetry directly for (${lat}, ${lng})...`);
   try {
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,snowfall,rain&hourly=snow_depth&timezone=auto`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&${LIVE_PARAMS}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const json = await res.json();
-      const current = json.current || {};
-      const hourly = json.hourly || {};
-      const temp = current.temperature_2m ?? 18.0;
-      const wind = current.wind_speed_10m ?? 8.0;
-      const rain = current.rain ?? 0.0;
-      const snow = (hourly.snow_depth && hourly.snow_depth[0] > 0) ? Math.round(hourly.snow_depth[0] * 100) : 0;
+      const p = parseLiveOpenMeteo(json);
+      // Estimate slope client-side via elevation grid so pins differ even offline
+      let estSlope = 32;
+      try {
+        const d = 0.0045;
+        const eUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lat},${parseFloat(lat) + d},${lat}&longitude=${lng},${lng},${parseFloat(lng) + d}`;
+        const eRes = await fetch(eUrl, { signal: AbortSignal.timeout(4000) });
+        if (eRes.ok) {
+          const eJson = await eRes.json();
+          const ev = eJson.elevation;
+          if (Array.isArray(ev) && ev.length >= 3 && ev.every((x) => x != null)) {
+            const latRad = (parseFloat(lat) * Math.PI) / 180;
+            const mLat = 111320, mLng = 111320 * Math.max(0.2, Math.cos(latRad));
+            const gN = (ev[1] - ev[0]) / (d * mLat);
+            const gE = (ev[2] - ev[0]) / (d * mLng);
+            estSlope = Math.max(15, Math.min(55, Math.round(((Math.atan(Math.sqrt(gN * gN + gE * gE)) * 180) / Math.PI) * 10) / 10));
+          }
+        }
+      } catch (_e) {}
+      const useSlope = (slopeAngle !== null && slopeAngle !== undefined && slopeAngle !== '') ? parseFloat(slopeAngle) : estSlope;
 
       const simulated = calculateSimulatedRisk({
-        snow_depth: snow,
-        slope_angle: slopeAngle,
-        wind_speed: wind,
-        temperature: temp,
-        rainfall: rain
+        snow_depth: p.snowPack,
+        slope_angle: useSlope,
+        wind_speed: p.wind,
+        temperature: p.temp,
+        rainfall: p.rain24
       });
 
       return {
         coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) },
-        slopeAngle,
-        elevation: Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
+        slopeAngle: useSlope,
+        slopeSource: 'live-satellite-direct',
+        elevation: p.modelElev ?? Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
         ...simulated,
         weather: {
-          temperature: temp,
-          windSpeed: wind,
-          wind_speed: wind,
-          snowfall24h: current.snowfall || 0,
-          rainfall24h: rain,
-          rainfall: rain,
-          snowDepth: snow,
-          snow_depth: snow,
+          temperature: p.temp,
+          temperature_raw: p.temp,
+          windSpeed: p.wind,
+          wind_speed: p.wind,
+          humidity: p.humidity,
+          weather_code: p.weatherCode,
+          snowfall24h: p.snow24,
+          snowfall_24h: p.snow24,
+          snowfall_now: p.snowNow,
+          rainfall24h: p.rain24,
+          rainfall: p.rain24,
+          rain_now: p.rainNow,
+          snowDepth: p.snowPack,
+          snow_depth: p.snowPack,
+          observationTime: p.obsTime,
           source: 'live-satellite-direct',
           fetchedAt: new Date().toISOString()
         },

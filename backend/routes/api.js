@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const VILLAGES = require('../data/villages');
-const { getLiveWeather, fetchBatchWeather } = require('../services/weatherService');
+const { getLiveWeather, fetchBatchWeather, getTerrainSlope } = require('../services/weatherService');
 const { predictRisk } = require('../services/mlClient');
 const { recordEvaluation, getHistory } = require('../services/historyService');
 
@@ -19,8 +19,8 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
     return cached.data;
   }
 
-  // 1. Use batch weather override if provided, or fetch live
-  const weather = weatherOverride || await getLiveWeather(village.lat, village.lng, forceRefresh);
+  // 1. Use batch weather override if provided, or fetch live (with DEM elevation for correction)
+  const weather = weatherOverride || await getLiveWeather(village.lat, village.lng, forceRefresh, village.elevation ?? null);
 
   // 2. Call ML Model with the 5 model features
   const mlOutput = await predictRisk({
@@ -62,14 +62,22 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
     },
     weather: {
       temperature: weather.temperature,
+      temperature_raw: weather.temperature_raw ?? weather.temperature,
+      temperature_corrected: weather.temperature_corrected ?? false,
+      modelElevation: weather.modelElevation ?? null,
       windSpeed: weather.windSpeed ?? weather.wind_speed ?? 10,
       wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
+      humidity: weather.humidity ?? null,
+      weather_code: weather.weather_code ?? null,
       snowfall24h: weather.snowfall24h ?? weather.snowfall_24h ?? 0,
       snowfall_24h: weather.snowfall_24h ?? weather.snowfall24h ?? 0,
+      snowfall_now: weather.snowfall_now ?? 0,
       rainfall24h: weather.rainfall24h ?? weather.rainfall ?? 0,
       rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+      rain_now: weather.rain_now ?? 0,
       snowDepth: weather.snowDepth ?? weather.snow_depth ?? 0,
       snow_depth: weather.snow_depth ?? weather.snowDepth ?? 0,
+      observationTime: weather.observationTime || null,
       source: weather.source,
       fetchedAt: weather.fetchedAt || new Date().toISOString()
     },
@@ -141,44 +149,65 @@ router.get('/risk/:villageId', async (req, res) => {
  */
 router.post('/predict-coordinate', async (req, res) => {
   try {
-    const { lat, lng, slope_angle = 36 } = req.body;
+    const { lat, lng, slope_angle } = req.body;
     if (lat === undefined || lng === undefined) {
       return res.status(400).json({ error: 'Coordinates (lat, lng) are required.' });
     }
 
     // Always fetch fresh real-time satellite data for clicked points
-    const weather = await getLiveWeather(parseFloat(lat), parseFloat(lng), true);
+    // No DEM elevation known for arbitrary point, so no lapse correction (raw model temp)
+    const weather = await getLiveWeather(parseFloat(lat), parseFloat(lng), true, null);
+
+    // Real slope per coordinate: use caller value if explicitly given,
+    // else estimate from Open-Meteo elevation grid (varies per point, never fixed 36)
+    let slopeAngle = parseFloat(slope_angle);
+    let slopeSource = 'user-provided';
+    if (slope_angle === undefined || slope_angle === null || slope_angle === '' || Number.isNaN(slopeAngle)) {
+      const est = await getTerrainSlope(parseFloat(lat), parseFloat(lng));
+      slopeAngle = est.slopeAngle;
+      slopeSource = est.source;
+    }
 
     const mlOutput = await predictRisk({
       snow_depth: weather.snow_depth ?? weather.snowDepth ?? 0,
-      slope_angle: parseFloat(slope_angle),
+      slope_angle: slopeAngle,
       wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
       temperature: weather.temperature,
       rainfall: weather.rainfall ?? weather.rainfall24h ?? 0
     });
 
     let floodRaw = (weather.rainfall ?? 0) * 2.2 + Math.max(0, weather.temperature * 1.8);
-    if (parseFloat(slope_angle) > 35) floodRaw *= 1.25;
+    if (slopeAngle > 35) floodRaw *= 1.25;
     const floodScore = Math.min(95, Math.max(8, Math.round(floodRaw + 10)));
     const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
 
     const normalizedWeather = {
       temperature: weather.temperature,
+      temperature_raw: weather.temperature_raw ?? weather.temperature,
+      temperature_corrected: weather.temperature_corrected ?? false,
+      modelElevation: weather.modelElevation ?? null,
       windSpeed: weather.windSpeed ?? weather.wind_speed ?? 10,
       wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
+      humidity: weather.humidity ?? null,
+      weather_code: weather.weather_code ?? null,
       snowDepth: weather.snowDepth ?? weather.snow_depth ?? 0,
       snow_depth: weather.snow_depth ?? weather.snowDepth ?? 0,
       rainfall24h: weather.rainfall24h ?? weather.rainfall ?? 0,
       rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+      rain_now: weather.rain_now ?? 0,
       snowfall24h: weather.snowfall24h ?? weather.snowfall_24h ?? 0,
+      snowfall_now: weather.snowfall_now ?? 0,
+      observationTime: weather.observationTime || null,
       source: weather.source,
       fetchedAt: weather.fetchedAt || new Date().toISOString()
     };
 
     const result = {
       coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) },
-      slopeAngle: parseFloat(slope_angle),
-      elevation: Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
+      slopeAngle,
+      slopeSource,
+      // Use real model grid elevation when available, else estimate
+      elevation: weather.modelElevation ?? Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
       avalancheRisk: {
         score: mlOutput.score,
         level: mlOutput.level
@@ -252,6 +281,35 @@ router.post('/simulate', async (req, res) => {
   } catch (error) {
     console.error('Simulation error:', error);
     res.status(500).json({ error: 'Simulation computation failed' });
+  }
+});
+
+/**
+ * 4b. POST /api/predict
+ * Feature vector direct inference endpoint (Backend proxy to ML or calibrated heuristic)
+ */
+router.post('/predict', async (req, res) => {
+  try {
+    const {
+      snow_depth = 40,
+      slope_angle = 38,
+      wind_speed = 20,
+      temperature = -3,
+      rainfall = 0
+    } = req.body;
+
+    const mlOutput = await predictRisk({
+      snow_depth,
+      slope_angle,
+      wind_speed,
+      temperature,
+      rainfall
+    });
+
+    res.json(mlOutput);
+  } catch (error) {
+    console.error('Prediction error:', error);
+    res.status(500).json({ error: 'Direct feature prediction failed' });
   }
 });
 

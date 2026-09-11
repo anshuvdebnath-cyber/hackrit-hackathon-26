@@ -16,9 +16,16 @@ export default function WeatherTerrainCards({ village }) {
 
   const weather = village.weather || {};
   const temp = weather.temperature ?? 0;
-  const wind = weather.windSpeed ?? 0;
-  const snow = weather.snowfall24h ?? 0;
-  const rain = weather.rainfall24h ?? 0;
+  const tempRaw = weather.temperature_raw ?? temp;
+  const tempCorrected = weather.temperature_corrected ?? false;
+  const wind = weather.windSpeed ?? weather.wind_speed ?? 0;
+  const snowFall24h = weather.snowfall24h ?? weather.snowfall_24h ?? 0;
+  const rain24h = weather.rainfall24h ?? weather.rainfall ?? 0;
+  const snowPack = weather.snowDepth ?? weather.snow_depth ?? 0;
+  const humidity = weather.humidity ?? null;
+  const obsTime = weather.observationTime || weather.fetchedAt || null;
+  const source = weather.source || 'live-open-meteo';
+  const modelElev = weather.modelElevation ?? null;
   const slope = village.slopeAngle ?? 0;
   const elevation = village.elevation ?? 0;
   const aspect = village.aspect ?? 'North';
@@ -27,8 +34,7 @@ export default function WeatherTerrainCards({ village }) {
   // Physical classification helpers
   const isCriticalSlope = slope >= 30 && slope <= 45;
   const isHighWind = wind >= 20;
-  const isSnowLoading = snow >= 10;
-  const isRainOnSnow = rain > 0 && snow > 0;
+  const isSnowLoading = snowFall24h >= 10 || snowPack >= 30;
 
   return (
     <div className="bg-earth-50 rounded-2xl p-6 border border-earth-200 shadow-sm space-y-5">
@@ -43,15 +49,16 @@ export default function WeatherTerrainCards({ village }) {
             Meteorological & DEM Parameters
           </h3>
         </div>
-        <span className="text-xs text-earth-500 font-medium">
-          Source: OpenWeather & DEM 12.5m
+        <span className="text-xs text-earth-500 font-medium text-right">
+          Source: Open-Meteo live
+          {obsTime ? <span className="block text-[10px] font-mono">Obs: {obsTime}</span> : null}
         </span>
       </div>
 
-      {/* Grid of Telemetry Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* Grid of Telemetry Cards — all values are ORIGINAL Open-Meteo live data */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         
-        {/* Temperature Card */}
+        {/* Temperature Card — live, lapse-corrected to village elevation */}
         <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-earth-500 mb-1">
             <span className="text-xs font-semibold">Temperature</span>
@@ -59,10 +66,13 @@ export default function WeatherTerrainCards({ village }) {
           </div>
           <div>
             <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {temp > 0 ? `+${temp}` : temp}�C
+              {temp > 0 ? `+${temp}` : temp}°C
             </div>
             <div className="text-[11px] text-earth-500 font-medium mt-0.5">
               {temp <= 0 ? 'Sub-zero snowpack freeze' : 'Above freezing; wet thaw risk'}
+            </div>
+            <div className="text-[10px] text-earth-400 font-mono mt-0.5">
+              raw {tempRaw}°C{tempCorrected ? ' (lapse-corr.)' : ''}{humidity != null ? ` · RH ${humidity}%` : ''}
             </div>
           </div>
         </div>
@@ -78,12 +88,12 @@ export default function WeatherTerrainCards({ village }) {
               {wind} <span className="text-sm font-sans font-normal text-earth-600">km/h</span>
             </div>
             <div className="text-[11px] text-earth-500 font-medium mt-0.5">
-              {isHighWind ? '?? Active crest wind-slab drift' : 'Light to moderate breeze'}
+              {isHighWind ? 'Active crest wind-slab drift' : 'Light to moderate breeze'}
             </div>
           </div>
         </div>
 
-        {/* 24h Snowfall Card */}
+        {/* 24h Snowfall Card — daily.snowfall_sum (true 24h total, cm) */}
         <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-earth-500 mb-1">
             <span className="text-xs font-semibold">24h Snowfall</span>
@@ -91,15 +101,16 @@ export default function WeatherTerrainCards({ village }) {
           </div>
           <div>
             <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {snow} <span className="text-sm font-sans font-normal text-earth-600">cm</span>
+              {snowFall24h} <span className="text-sm font-sans font-normal text-earth-600">cm</span>
             </div>
             <div className="text-[11px] text-earth-500 font-medium mt-0.5">
-              {isSnowLoading ? '?? Heavy fresh slab loading' : 'Moderate or no fresh snow'}
+              {isSnowLoading ? 'Heavy fresh slab loading' : 'Moderate or no fresh snow'}
             </div>
+            <div className="text-[10px] text-earth-400 font-mono mt-0.5">daily sum · live</div>
           </div>
         </div>
 
-        {/* 24h Rainfall Card */}
+        {/* 24h Rainfall Card — daily.rain_sum (true 24h total, mm) */}
         <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between text-earth-500 mb-1">
             <span className="text-xs font-semibold">24h Rainfall</span>
@@ -107,14 +118,38 @@ export default function WeatherTerrainCards({ village }) {
           </div>
           <div>
             <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {rain} <span className="text-sm font-sans font-normal text-earth-600">mm</span>
+              {rain24h} <span className="text-sm font-sans font-normal text-earth-600">mm</span>
             </div>
             <div className="text-[11px] text-earth-500 font-medium mt-0.5">
-              {rain > 10 ? '?? Heavy runoff / flash flood' : 'Dry precipitation profile'}
+              {rain24h > 10 ? 'Heavy runoff / flash flood' : 'Dry precipitation profile'}
             </div>
+            <div className="text-[10px] text-earth-400 font-mono mt-0.5">daily sum · live</div>
           </div>
         </div>
 
+        {/* Snowpack Depth Card — hourly.snow_depth at observation hour (m -> cm) */}
+        <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-earth-500 mb-1">
+            <span className="text-xs font-semibold">Snowpack Depth</span>
+            <Layers className="w-4 h-4 text-terracotta-500" />
+          </div>
+          <div>
+            <div className="text-2xl font-serif font-extrabold text-earth-900">
+              {snowPack} <span className="text-sm font-sans font-normal text-earth-600">cm</span>
+            </div>
+            <div className="text-[11px] text-earth-500 font-medium mt-0.5">
+              {snowPack <= 0 ? 'Bare ground at model grid' : snowPack < 30 ? 'Thin / patchy cover' : 'Deep pack — avalanche fuel'}
+            </div>
+            <div className="text-[10px] text-earth-400 font-mono mt-0.5">hourly snow_depth · live</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div className="text-[11px] text-earth-500 font-mono bg-white/60 border border-earth-200/70 rounded-lg px-3 py-2">
+        Live: {source} · Obs {obsTime ?? '—'}
+        {modelElev != null ? ` · model elev ${modelElev}m vs village ${elevation}m` : ` · village ${elevation}m`}
+        . Basemap white = static glacier rendering (OpenTopoMap), not live snow.
       </div>
 
       {/* Terrain DEM Parameters Row */}
@@ -136,10 +171,10 @@ export default function WeatherTerrainCards({ village }) {
               Incline Gradient
             </div>
             <div className="text-lg font-bold">
-              {slope}� Slope
+              {slope}° Slope
             </div>
             <div className="text-[11px] opacity-80">
-              {isCriticalSlope ? '?? Within peak avalanche zone (30�-45�)' : '?? Outside prime release zone'}
+              {isCriticalSlope ? 'Within peak avalanche zone (30°-45°)' : 'Outside prime release zone'}
             </div>
           </div>
         </div>
@@ -154,7 +189,7 @@ export default function WeatherTerrainCards({ village }) {
               Elevation & Aspect
             </div>
             <div className="text-lg font-bold text-earth-900">
-              {elevation}m � {aspect}
+              {elevation}m · {aspect}
             </div>
             <div className="text-[11px] text-earth-600">
               {village.vegetation || 'Alpine Valley'}

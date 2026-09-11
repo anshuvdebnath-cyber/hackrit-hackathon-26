@@ -43,59 +43,154 @@ FEATURE_NAMES = [
     "Rainfall Trigger"
 ]
 
-# 2. Try loading the trained XGBoost model if exported by your brother
-MODEL_FILE = os.path.join(os.path.dirname(__file__), "model.joblib")
-model: Optional[Any] = None
+# 2. Dynamic Model Loader supporting joblib, pkl, pickle, and native XGBoost json/ubj
+MODEL_CANDIDATE_NAMES = [
+    "model.joblib",
+    "model.pkl",
+    "model.pickle",
+    "model.json",
+    "model.ubj",
+    "model.bin"
+]
 
-if os.path.exists(MODEL_FILE):
-    try:
-        model = joblib.load(MODEL_FILE)
-        print(f"[OK] Successfully loaded trained XGBoost model from {MODEL_FILE}")
-    except Exception as e:
-        print(f"[WARN] Error loading model file: {e}. Using fallback heuristic.")
-else:
-    print(f"[INFO] Model file '{MODEL_FILE}' not found yet. Ready for your brother to drop it in!")
+model: Optional[Any] = None
+model_type: str = "none"
+model_file_loaded: Optional[str] = None
+
+def load_ml_model() -> bool:
+    global model, model_type, model_file_loaded
+    dir_path = os.path.dirname(__file__)
+    
+    for fname in MODEL_CANDIDATE_NAMES:
+        candidate_path = os.path.join(dir_path, fname)
+        if os.path.exists(candidate_path):
+            try:
+                if fname.endswith((".json", ".ubj", ".bin")):
+                    import xgboost as xgb
+                    booster = xgb.Booster()
+                    booster.load_model(candidate_path)
+                    model = booster
+                    model_type = "xgb_booster"
+                else:
+                    model = joblib.load(candidate_path)
+                    model_type = "scikit_or_xgb_sklearn"
+                
+                model_file_loaded = fname
+                print(f"[OK] Successfully loaded trained ML model from {candidate_path} (type: {model_type})")
+                return True
+            except Exception as e:
+                print(f"[WARN] Failed to load {candidate_path}: {e}")
+    
+    model = None
+    model_type = "none"
+    model_file_loaded = None
+    return False
+
+# Initial load attempt on startup
+load_ml_model()
 
 @app.get("/health")
 def health():
+    # If not loaded yet, attempt check in case teammate just dropped it into the folder
+    if model is None:
+        load_ml_model()
+        
     return {
         "status": "online",
         "service": "FastAPI XGBoost ML Service",
         "model_loaded": model is not None,
-        "features_expected": ["snow_depth", "slope_angle", "wind_speed", "temperature", "rainfall"]
+        "model_file": model_file_loaded,
+        "model_type": model_type,
+        "features_expected": [
+            "snow_depth",
+            "slope_angle",
+            "wind_speed",
+            "temperature",
+            "rainfall"
+        ]
+    }
+
+@app.post("/reload")
+def reload_model():
+    success = load_ml_model()
+    return {
+        "reloaded": success,
+        "model_loaded": model is not None,
+        "model_file": model_file_loaded
     }
 
 @app.post("/predict")
 def predict(data: PredictRequest):
-    # Prepare the feature vector for XGBoost
-    # Feature ordering: [snow_depth, slope_angle, wind_speed, temperature, rainfall]
-    features = np.array([[
-        data.snow_depth,
-        data.slope_angle,
-        data.wind_speed,
-        data.temperature,
-        data.rainfall
-    ]], dtype=np.float32)
+    global model
+    if model is None:
+        load_ml_model()
+
+    # Prepare feature array
+    feature_values = [
+        float(data.snow_depth),
+        float(data.slope_angle),
+        float(data.wind_speed),
+        float(data.temperature),
+        float(data.rainfall)
+    ]
+    features = np.array([feature_values], dtype=np.float32)
 
     if model is not None:
         try:
-            # Predict with XGBoost
-            # Assumes model predicts continuous risk score (0-100) or probability (0-1)
-            raw_prediction = float(model.predict(features)[0])
+            raw_prediction = 50.0
+            
+            # Check if native xgb.Booster
+            if model_type == "xgb_booster":
+                import xgboost as xgb
+                feature_keys = ["snow_depth", "slope_angle", "wind_speed", "temperature", "rainfall"]
+                dmatrix = xgb.DMatrix(features, feature_names=feature_keys)
+                raw_pred = model.predict(dmatrix)
+                raw_prediction = float(raw_pred[0])
+            # Check for classification predict_proba
+            elif hasattr(model, "predict_proba"):
+                proba = model.predict_proba(features)
+                if proba.shape[1] > 1:
+                    raw_prediction = float(proba[0][1]) * 100.0
+                else:
+                    raw_prediction = float(proba[0][0]) * 100.0
+            # Standard predict (XGBRegressor or Pipeline)
+            elif hasattr(model, "predict"):
+                import pandas as pd
+                # Pass with column names if model expects named features
+                feature_keys = ["snow_depth", "slope_angle", "wind_speed", "temperature", "rainfall"]
+                df_features = pd.DataFrame([feature_values], columns=feature_keys)
+                try:
+                    preds = model.predict(df_features)
+                except Exception:
+                    preds = model.predict(features)
+                raw_prediction = float(preds[0])
+
             score = raw_prediction * 100 if raw_prediction <= 1.0 else raw_prediction
             score = round(min(99.0, max(5.0, score)), 1)
             
             # Extract XGBoost feature importances if available
             if hasattr(model, "feature_importances_"):
                 importances = [float(x) for x in getattr(model, "feature_importances_")]
+            elif hasattr(model, "get_score"):
+                # Native Booster feature importance
+                scores = model.get_score(importance_type='weight')
+                feature_keys = ["snow_depth", "slope_angle", "wind_speed", "temperature", "rainfall"]
+                total = sum(scores.values()) or 1.0
+                importances = [scores.get(k, 0.0) / total for k in feature_keys]
             else:
                 importances = [0.35, 0.30, 0.20, 0.10, 0.05]
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Model inference failed: {str(err)}")
     else:
-        # If there is no snow on the ground (< 5cm), avalanche release is physically impossible
+        # If there is no snow on the ground (< 5cm), avalanche release is physically
+        # impossible — but vary score 3-14 with terrain so pins don't all read flat 3.
         if data.snow_depth < 5.0:
-            score = round(min(12.0, max(3.0, data.snow_depth * 1.2)), 1)
+            slope_f = 4.0 if 30 <= data.slope_angle <= 45 else (2.0 if data.slope_angle > 45 else 1.0)
+            wind_f = min(3.0, max(0.0, (data.wind_speed - 5) * 0.15))
+            temp_f = 1.5 if data.temperature > 2 else (1.0 if data.temperature < -12 else 0.5)
+            rain_f = min(2.5, data.rainfall * 0.2) if data.rainfall > 0 else 0.0
+            snow_f = max(0.0, data.snow_depth * 0.4)
+            score = round(min(14.0, max(3.0, 3 + slope_f + wind_f + temp_f + rain_f + snow_f)), 1)
             importances = [0.10, 0.40, 0.20, 0.20, 0.10]
         else:
             # Calibrated baseline physics heuristic while training is in progress

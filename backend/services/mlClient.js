@@ -26,9 +26,17 @@ async function predictRisk({ snow_depth, slope_angle, wind_speed, temperature, r
   } catch (_error) {
     // 2. Unblock the team with calibrated physical fallback
     // Matches the Himalayan shear equilibrium model
+    // NOTE: no snowpack => no avalanche release, but score still varies 3-14
+    // with slope/wind/temp so every coordinate does NOT show a flat 4.5.
     if (snow_depth < 5) {
+      const slopeF = (slope_angle >= 30 && slope_angle <= 45) ? 4.0 : (slope_angle > 45 ? 2.0 : 1.0);
+      const windF = Math.min(3.0, Math.max(0, (wind_speed - 5) * 0.15));
+      const tempF = temperature > 2 ? 1.5 : (temperature < -12 ? 1.0 : 0.5);
+      const rainF = rainfall > 0 ? Math.min(2.5, rainfall * 0.2) : 0;
+      const snowF = Math.max(0, snow_depth * 0.4);
+      const score = Math.round(Math.min(14, Math.max(3, 3 + slopeF + windF + tempF + rainF + snowF)) * 10) / 10;
       return {
-        score: 4.5,
+        score,
         level: 'Low',
         topFactors: [
           { name: 'Slope Angle Criticality', importance: 0.35 },
@@ -37,7 +45,7 @@ async function predictRisk({ snow_depth, slope_angle, wind_speed, temperature, r
           { name: 'Temperature Anomaly', importance: 0.10 },
           { name: 'Rainfall Destabilization', importance: 0.10 }
         ],
-        explanation: `Negligible avalanche hazard: Ground is clear of snowpack (${snow_depth}cm). Slope is currently stable.`,
+        explanation: `Negligible avalanche hazard: Ground is clear of snowpack (${snow_depth}cm). Score ${score}/100 reflects terrain predisposition only (slope ${slope_angle}°).`,
         source: 'heuristic-bridge'
       };
     }
