@@ -8,7 +8,8 @@ import {
   Compass,
   Layers,
   History,
-  AlertCircle
+  AlertCircle,
+  ShieldAlert
 } from 'lucide-react';
 
 export default function WeatherTerrainCards({ village }) {
