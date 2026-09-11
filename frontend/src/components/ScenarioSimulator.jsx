@@ -98,56 +98,56 @@ export default function ScenarioSimulator({ baseVillage }) {
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2">
               <Sliders className="w-4 h-4 text-terracotta-600" />
-              <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700">
+              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700 font-heading">
                 Interactive Explainability Sandbox
               </span>
             </div>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-earth-200/90 border border-earth-300/80 text-[11px] font-medium text-earth-700 shadow-sm">
-              <Cpu className={`w-3 h-3 ${isBackendSyncing ? 'animate-spin text-terracotta-600' : 'text-moss-600'}`} />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-earth-200/90 border border-earth-300/80 text-xs font-semibold text-earth-800 shadow-sm">
+              <Cpu className={`w-3.5 h-3.5 ${isBackendSyncing ? 'animate-spin text-terracotta-600' : 'text-moss-600'}`} />
               <span>{isBackendSyncing ? 'Evaluating ML inference...' : (activeResult?.source === 'backend-ml' || activeResult?.source === 'live-fastapi-xgboost') ? 'FastAPI XGBoost Service' : 'Calibrated Physics Model'}</span>
             </span>
           </div>
-          <h2 className="font-serif text-2xl font-bold text-earth-900 mt-0.5">
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-earth-900 mt-1">
             What-If Scenario Simulator
           </h2>
-          <p className="text-xs text-earth-600">
+          <p className="text-xs sm:text-sm text-earth-700 font-medium">
             Manipulate snowpack and meteorological triggers to see real-time model re-computation and factor shifts
           </p>
         </div>
 
         {/* Presets and Reset */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold text-earth-500 mr-1">Presets:</span>
+          <span className="text-xs sm:text-sm font-bold text-earth-700 font-heading mr-1">Presets:</span>
           <button
             onClick={() => applyPreset('blizzard')}
-            className="px-2.5 py-1 rounded bg-white hover:bg-earth-100 border border-earth-300 text-xs font-semibold text-earth-800 shadow-sm transition"
+            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
           >
             Blizzard
           </button>
           <button
             onClick={() => applyPreset('rainOnSnow')}
-            className="px-2.5 py-1 rounded bg-white hover:bg-earth-100 border border-earth-300 text-xs font-semibold text-earth-800 shadow-sm transition"
+            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
           >
             Rain-on-Snow
           </button>
           <button
             onClick={() => applyPreset('deepFreeze')}
-            className="px-2.5 py-1 rounded bg-white hover:bg-earth-100 border border-earth-300 text-xs font-semibold text-earth-800 shadow-sm transition"
+            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
           >
             Deep Freeze
           </button>
           <button
             onClick={() => applyPreset('stable')}
-            className="px-2.5 py-1 rounded bg-white hover:bg-earth-100 border border-earth-300 text-xs font-semibold text-earth-800 shadow-sm transition"
+            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
           >
             Stable
           </button>
           <button
             onClick={handleReset}
-            className="p-1.5 rounded bg-earth-200/80 hover:bg-earth-300 text-earth-700 transition"
+            className="p-2 rounded-lg bg-earth-200/80 hover:bg-earth-300 text-earth-700 transition cursor-pointer"
             title="Reset to default"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -157,18 +157,18 @@ export default function ScenarioSimulator({ baseVillage }) {
         
         {/* Left Column: Sliders (5 cols) */}
         <div className="lg:col-span-5 bg-white p-5 rounded-xl border border-earth-200/90 shadow-sm space-y-4">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-earth-700 border-b border-earth-100 pb-2">
+          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-earth-800 border-b border-earth-100 pb-2 font-heading">
             Terrain & Weather Parameters
           </h3>
 
           {/* 1. Snow Depth */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-earth-800 flex items-center gap-1">
-                <CloudSnow className="w-3.5 h-3.5 text-blue-500" />
+            <div className="flex justify-between items-center text-xs sm:text-sm">
+              <span className="font-bold text-earth-800 flex items-center gap-1.5 font-heading">
+                <CloudSnow className="w-4 h-4 text-blue-500" />
                 Fresh Snowfall (24h)
               </span>
-              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2 py-0.5 rounded">
+              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2.5 py-0.5 rounded text-xs sm:text-sm">
                 {snowDepth} cm
               </span>
             </div>
@@ -181,22 +181,22 @@ export default function ScenarioSimulator({ baseVillage }) {
               onChange={(e) => setSnowDepth(Number(e.target.value))}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-earth-400">
+            <div className="flex justify-between text-xs text-earth-600 font-medium">
               <span>0 cm (Bare)</span>
-              <span>30 cm (Heavy Slab)</span>
+              <span className="font-semibold text-earth-800">30 cm (Heavy Slab)</span>
               <span>100 cm (Extreme)</span>
             </div>
           </div>
 
           {/* 2. Slope Angle */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-earth-800 flex items-center gap-1">
-                <Mountain className="w-3.5 h-3.5 text-earth-700" />
+            <div className="flex justify-between items-center text-xs sm:text-sm">
+              <span className="font-bold text-earth-800 flex items-center gap-1.5 font-heading">
+                <Mountain className="w-4 h-4 text-earth-700" />
                 Slope Incline Angle
               </span>
-              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2 py-0.5 rounded">
-                {slopeAngle}�
+              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2.5 py-0.5 rounded text-xs sm:text-sm">
+                {slopeAngle}°
               </span>
             </div>
             <input
@@ -208,21 +208,21 @@ export default function ScenarioSimulator({ baseVillage }) {
               onChange={(e) => setSlopeAngle(Number(e.target.value))}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-earth-400">
-              <span>15� (Low)</span>
-              <span className="text-clay-600 font-bold">38� (Peak Avalanche Hazard)</span>
-              <span>55� (Sluff)</span>
+            <div className="flex justify-between text-xs text-earth-600 font-medium">
+              <span>15° (Low)</span>
+              <span className="text-clay-700 font-bold">38° (Peak Avalanche Hazard)</span>
+              <span>55° (Sluff)</span>
             </div>
           </div>
 
           {/* 3. Wind Speed */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-earth-800 flex items-center gap-1">
-                <Wind className="w-3.5 h-3.5 text-earth-700" />
+            <div className="flex justify-between items-center text-xs sm:text-sm">
+              <span className="font-bold text-earth-800 flex items-center gap-1.5 font-heading">
+                <Wind className="w-4 h-4 text-earth-700" />
                 Crest Wind Speed
               </span>
-              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2 py-0.5 rounded">
+              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2.5 py-0.5 rounded text-xs sm:text-sm">
                 {windSpeed} km/h
               </span>
             </div>
@@ -235,7 +235,7 @@ export default function ScenarioSimulator({ baseVillage }) {
               onChange={(e) => setWindSpeed(Number(e.target.value))}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-earth-400">
+            <div className="flex justify-between text-xs text-earth-600 font-medium">
               <span>0 km/h (Calm)</span>
               <span>25 km/h (Drifting)</span>
               <span>70 km/h (Gale)</span>
@@ -244,13 +244,13 @@ export default function ScenarioSimulator({ baseVillage }) {
 
           {/* 4. Temperature */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-earth-800 flex items-center gap-1">
-                <Thermometer className="w-3.5 h-3.5 text-terracotta-500" />
+            <div className="flex justify-between items-center text-xs sm:text-sm">
+              <span className="font-bold text-earth-800 flex items-center gap-1.5 font-heading">
+                <Thermometer className="w-4 h-4 text-terracotta-500" />
                 Air Temperature
               </span>
-              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2 py-0.5 rounded">
-                {temperature > 0 ? `+${temperature}` : temperature}�C
+              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2.5 py-0.5 rounded text-xs sm:text-sm">
+                {temperature > 0 ? `+${temperature}` : temperature}°C
               </span>
             </div>
             <input
@@ -262,21 +262,21 @@ export default function ScenarioSimulator({ baseVillage }) {
               onChange={(e) => setTemperature(Number(e.target.value))}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-earth-400">
-              <span>-25�C (Facet)</span>
-              <span>0�C (Isothermal)</span>
-              <span>+15�C (Wet Slide)</span>
+            <div className="flex justify-between text-xs text-earth-600 font-medium">
+              <span>-25°C (Facet)</span>
+              <span>0°C (Isothermal)</span>
+              <span>+15°C (Wet Slide)</span>
             </div>
           </div>
 
           {/* 5. Rainfall */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-earth-800 flex items-center gap-1">
-                <CloudRain className="w-3.5 h-3.5 text-blue-600" />
+            <div className="flex justify-between items-center text-xs sm:text-sm">
+              <span className="font-bold text-earth-800 flex items-center gap-1.5 font-heading">
+                <CloudRain className="w-4 h-4 text-blue-600" />
                 Liquid Rainfall (24h)
               </span>
-              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2 py-0.5 rounded">
+              <span className="font-mono font-bold text-terracotta-700 bg-earth-100 px-2.5 py-0.5 rounded text-xs sm:text-sm">
                 {rainfall} mm
               </span>
             </div>
@@ -289,7 +289,7 @@ export default function ScenarioSimulator({ baseVillage }) {
               onChange={(e) => setRainfall(Number(e.target.value))}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
-            <div className="flex justify-between text-[10px] text-earth-400">
+            <div className="flex justify-between text-xs text-earth-600 font-medium">
               <span>0 mm (Dry)</span>
               <span>20 mm (Saturation)</span>
               <span>50 mm (Torrents)</span>
@@ -305,16 +305,16 @@ export default function ScenarioSimulator({ baseVillage }) {
           <div className="grid grid-cols-2 gap-4">
             
             {/* Avalanche Live Score */}
-            <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 sm:p-5 rounded-xl border border-earth-200/90 shadow-sm flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-earth-500">
+                <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-earth-600 font-heading">
                   Simulated Avalanche Risk
                 </span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl font-serif font-black" style={{ color: avalColor }}>
+                <div className="flex items-baseline gap-2.5 mt-1.5">
+                  <span className="text-3xl sm:text-4xl font-heading font-black" style={{ color: avalColor }}>
                     {avalancheRisk.score}
                   </span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded uppercase" style={{
+                  <span className="text-xs sm:text-sm font-bold px-2.5 py-0.5 rounded-full uppercase" style={{
                     backgroundColor: `${avalColor}15`,
                     color: avalColor
                   }}>
@@ -331,16 +331,16 @@ export default function ScenarioSimulator({ baseVillage }) {
             </div>
 
             {/* Flood Live Score */}
-            <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex items-center justify-between">
+            <div className="bg-white p-4 sm:p-5 rounded-xl border border-earth-200/90 shadow-sm flex items-center justify-between">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-earth-500">
+                <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-earth-600 font-heading">
                   Simulated Flood Risk
                 </span>
-                <div className="flex items-baseline gap-2 mt-1">
-                  <span className="text-3xl font-serif font-black text-earth-900">
+                <div className="flex items-baseline gap-2.5 mt-1.5">
+                  <span className="text-3xl sm:text-4xl font-heading font-black text-earth-900">
                     {floodRisk.score}
                   </span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 uppercase">
+                  <span className="text-xs sm:text-sm font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 uppercase">
                     {floodRisk.level}
                   </span>
                 </div>
@@ -353,11 +353,11 @@ export default function ScenarioSimulator({ baseVillage }) {
           </div>
 
           {/* Dynamic Physical Explanation Banner */}
-          <div className="bg-earth-100/90 p-3.5 rounded-xl border border-earth-300/80 text-xs text-earth-800 flex items-start gap-2.5">
-            <Sparkles className="w-4 h-4 text-terracotta-600 flex-shrink-0 mt-0.5" />
+          <div className="bg-earth-100/90 p-4 rounded-xl border border-earth-300/80 text-xs sm:text-sm text-earth-800 flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-terracotta-600 flex-shrink-0 mt-0.5" />
             <div>
-              <span className="font-bold text-earth-900 block mb-0.5">Physical Model Analysis:</span>
-              <p className="leading-relaxed text-earth-700">{explanation}</p>
+              <span className="font-bold text-earth-900 block mb-0.5 font-heading text-sm sm:text-base">Physical Model Analysis:</span>
+              <p className="leading-relaxed text-earth-800 font-medium">{explanation}</p>
             </div>
           </div>
 

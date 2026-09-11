@@ -46,30 +46,29 @@ export default function RiskGauge({ village }) {
 
   return (
     <div className="bg-earth-50 rounded-2xl p-6 border border-earth-200 shadow-sm space-y-6">
-      
-      {/* Header Info for Selected Village */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-earth-200 gap-2">
+       {/* Header Info for Selected Village */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-earth-200 gap-3">
         <div>
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-terracotta-600" />
-            <span className="text-xs font-semibold text-terracotta-700 tracking-wide uppercase">
-              {village.region} � {village.district} District
+            <span className="text-xs sm:text-sm font-bold text-terracotta-700 tracking-wide uppercase">
+              {village.region} · {village.district} District
             </span>
           </div>
-          <h2 className="font-serif text-2xl font-bold text-earth-900 mt-0.5">
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-earth-950 mt-1">
             {village.fullName || village.name}
           </h2>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-full text-xs font-bold border" style={{
+        <div className="flex items-center gap-2.5">
+          <span className="px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold border" style={{
             backgroundColor: `${avalColor}15`,
             color: avalColor,
             borderColor: `${avalColor}40`
           }}>
             Status: {avalLevel} Threat
           </span>
-          <span className="px-2.5 py-1 rounded-full text-xs bg-earth-200/70 text-earth-800 font-medium">
+          <span className="px-3 py-1.5 rounded-full text-xs sm:text-sm bg-earth-200/80 text-earth-800 font-semibold">
             Alt: {village.elevation}m
           </span>
         </div>
@@ -79,7 +78,7 @@ export default function RiskGauge({ village }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         
         {/* Avalanche Risk Radial Gauge Card */}
-        <div className="bg-white rounded-xl p-4 border border-earth-200/80 shadow-sm flex items-center gap-4">
+        <div className="bg-white rounded-2xl p-5 border border-earth-200/90 shadow-sm flex items-center gap-5">
           <div className="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               {/* Background Track */}
@@ -108,36 +107,36 @@ export default function RiskGauge({ village }) {
 
             {/* Score in Center */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-2xl font-extrabold font-serif text-earth-900 leading-none">
+              <span className="text-3xl font-extrabold font-heading text-earth-950 leading-none">
                 {avalScore}
               </span>
-              <span className="text-[10px] uppercase font-bold text-earth-500 mt-0.5">
+              <span className="text-xs uppercase font-bold text-earth-600 mt-0.5">
                 / 100
               </span>
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-earth-600 mb-1">
-              <Mountain className="w-3.5 h-3.5 text-terracotta-600" />
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-earth-700 mb-1">
+              <Mountain className="w-4 h-4 text-terracotta-600" />
               <span>AVALANCHE RISK</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold" style={{ color: avalColor }}>
+              <span className="text-xl font-heading font-extrabold" style={{ color: avalColor }}>
                 {avalLevel}
               </span>
-              <span className="text-xs text-earth-500">
-                {avalScore >= 70 ? 'Urgent warning' : avalScore >= 40 ? ' heightened vigilance' : 'baseline safety'}
+              <span className="text-xs sm:text-sm text-earth-600 font-medium">
+                {avalScore >= 70 ? 'Urgent warning' : avalScore >= 40 ? 'Heightened vigilance' : 'Baseline stability'}
               </span>
             </div>
-            <p className="text-xs text-earth-600 mt-1 leading-relaxed line-clamp-2">
+            <p className="text-xs sm:text-[13px] text-earth-700 mt-1.5 leading-relaxed">
               {village.statusSummary || 'Evaluation based on fresh snow accumulation, slope shear angle, and crest wind loading.'}
             </p>
           </div>
         </div>
 
         {/* Flood Risk Radial Gauge Card */}
-        <div className="bg-white rounded-xl p-4 border border-earth-200/80 shadow-sm flex items-center gap-4">
+        <div className="bg-white rounded-2xl p-5 border border-earth-200/90 shadow-sm flex items-center gap-5">
           <div className="relative w-28 h-28 flex-shrink-0 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               <circle
@@ -163,29 +162,29 @@ export default function RiskGauge({ village }) {
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <span className="text-2xl font-extrabold font-serif text-earth-900 leading-none">
+              <span className="text-3xl font-extrabold font-heading text-earth-950 leading-none">
                 {floodScore}
               </span>
-              <span className="text-[10px] uppercase font-bold text-earth-500 mt-0.5">
+              <span className="text-xs uppercase font-bold text-earth-600 mt-0.5">
                 / 100
               </span>
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-earth-600 mb-1">
-              <Droplets className="w-3.5 h-3.5 text-blue-600" />
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-earth-700 mb-1">
+              <Droplets className="w-4 h-4 text-blue-600" />
               <span>FLASH FLOOD / GLOF RISK</span>
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold" style={{ color: floodColor }}>
+              <span className="text-xl font-heading font-extrabold" style={{ color: floodColor }}>
                 {floodLevel}
               </span>
-              <span className="text-xs text-earth-500">
-                Runoff factor
+              <span className="text-xs sm:text-sm text-earth-600 font-medium">
+                Runoff saturation factor
               </span>
             </div>
-            <p className="text-xs text-earth-600 mt-1 leading-relaxed line-clamp-2">
+            <p className="text-xs sm:text-[13px] text-earth-700 mt-1.5 leading-relaxed">
               Monitored via 24h rainfall ({village.weather?.rainfall24h ?? 0}mm) and rain-on-snow hydraulic saturation.
             </p>
           </div>
@@ -194,19 +193,19 @@ export default function RiskGauge({ village }) {
       </div>
 
       {/* Official Advisory Banner */}
-      <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${advisory.badgeBg}`}>
+      <div className={`p-4 rounded-xl border flex items-start gap-3.5 ${advisory.badgeBg}`}>
         {avalLevel === 'High' ? (
-          <ShieldAlert className="w-5 h-5 flex-shrink-0 text-clay-600 mt-0.5" />
+          <ShieldAlert className="w-6 h-6 flex-shrink-0 text-clay-700 mt-0.5" />
         ) : avalLevel === 'Moderate' ? (
-          <AlertTriangle className="w-5 h-5 flex-shrink-0 text-terracotta-600 mt-0.5" />
+          <AlertTriangle className="w-6 h-6 flex-shrink-0 text-terracotta-700 mt-0.5" />
         ) : (
-          <CheckCircle className="w-5 h-5 flex-shrink-0 text-moss-600 mt-0.5" />
+          <CheckCircle className="w-6 h-6 flex-shrink-0 text-moss-700 mt-0.5" />
         )}
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider mb-0.5">
+          <h4 className="text-xs sm:text-sm font-heading font-extrabold uppercase tracking-wider mb-1">
             {advisory.title}
           </h4>
-          <p className="text-xs opacity-90 leading-relaxed">
+          <p className="text-xs sm:text-sm font-medium opacity-95 leading-relaxed">
             {advisory.instruction}
           </p>
         </div>

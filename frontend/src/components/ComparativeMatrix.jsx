@@ -58,13 +58,13 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
       {/* Top Header & Search/Filters */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-earth-200 pb-5">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700">
+          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700 font-heading">
             Disaster Management Multi-Sector View
           </span>
-          <h2 className="font-serif text-2xl font-bold text-earth-900 mt-0.5">
+          <h2 className="font-heading text-2xl sm:text-3xl font-extrabold text-earth-900 mt-0.5">
             Himalayan Regional Risk Matrix
           </h2>
-          <p className="text-xs text-earth-600">
+          <p className="text-xs sm:text-sm text-earth-700 font-medium">
             Consolidated overview across monitored high-altitude Himalayan sectors
           </p>
         </div>
@@ -80,19 +80,19 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
               placeholder="Filter village or district..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-3 py-1.5 text-xs bg-white rounded-lg border border-earth-300 focus:outline-none focus:ring-2 focus:ring-terracotta-500 text-earth-800 w-48 shadow-sm"
+              className="pl-9 pr-3 py-2 text-xs sm:text-sm bg-white rounded-lg border border-earth-300 focus:outline-none focus:ring-2 focus:ring-terracotta-500 text-earth-800 w-52 shadow-sm font-medium"
             />
           </div>
 
           {/* Level Filter Tabs */}
-          <div className="flex rounded-lg bg-earth-200/80 p-1 text-xs font-semibold">
+          <div className="flex rounded-lg bg-earth-200/80 p-1 text-xs sm:text-sm font-semibold font-heading">
             {['ALL', 'HIGH', 'MODERATE', 'LOW'].map((lvl) => (
               <button
                 key={lvl}
                 onClick={() => setFilterLevel(lvl)}
-                className={`px-2.5 py-1 rounded-md transition-colors ${
+                className={`px-3 py-1 rounded-md transition-colors ${
                   filterLevel === lvl
-                    ? 'bg-white text-earth-900 shadow-sm'
+                    ? 'bg-white text-earth-900 shadow-sm font-bold'
                     : 'text-earth-600 hover:text-earth-900'
                 }`}
               >
@@ -106,8 +106,8 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
 
       {/* Table Container */}
       <div className="overflow-x-auto rounded-xl border border-earth-200 shadow-sm bg-white">
-        <table className="w-full text-left text-xs text-earth-800">
-          <thead className="bg-earth-100/90 text-[11px] uppercase font-bold text-earth-700 tracking-wider border-b border-earth-200">
+        <table className="w-full text-left text-xs sm:text-sm text-earth-800">
+          <thead className="bg-earth-100/90 text-xs uppercase font-bold text-earth-800 font-heading tracking-wider border-b border-earth-200">
             <tr>
               <th className="py-3 px-4">Village & Sector</th>
               <th className="py-3 px-3 cursor-pointer hover:bg-earth-200/60" onClick={() => handleSort('elevation')}>
@@ -157,22 +157,22 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                   
                   {/* Village Info */}
                   <td className="py-3.5 px-4">
-                    <div className="font-bold text-earth-900 text-sm">
+                    <div className="font-bold text-earth-900 text-sm sm:text-base font-heading">
                       {village.name}
                     </div>
-                    <div className="text-[11px] text-earth-500">
+                    <div className="text-xs text-earth-600 font-medium">
                       {village.region} · {village.district}
                     </div>
                   </td>
 
                   {/* Elevation */}
-                  <td className="py-3.5 px-3 font-mono font-semibold text-earth-700">
+                  <td className="py-3.5 px-3 font-mono font-semibold text-earth-800 text-xs sm:text-sm">
                     {village.elevation}m
                   </td>
 
                   {/* Slope Angle */}
                   <td className="py-3.5 px-3">
-                    <span className={`font-mono font-bold px-1.5 py-0.5 rounded ${
+                    <span className={`font-mono font-bold text-xs sm:text-sm px-2 py-0.5 rounded ${
                       village.slopeAngle >= 30 && village.slopeAngle <= 45
                         ? 'bg-clay-100 text-clay-800'
                         : 'bg-earth-100 text-earth-700'
@@ -188,11 +188,11 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                         className="w-2.5 h-2.5 rounded-full"
                         style={{ backgroundColor: getRiskColor(avalLevel) }}
                       ></span>
-                      <span className="font-mono font-extrabold text-sm" style={{ color: getRiskColor(avalLevel) }}>
+                      <span className="font-mono font-extrabold text-sm sm:text-base" style={{ color: getRiskColor(avalLevel) }}>
                         {avalScore}
                       </span>
                       <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase"
+                        className="text-xs font-bold px-2.5 py-0.5 rounded-full uppercase"
                         style={{
                           backgroundColor: `${getRiskColor(avalLevel)}15`,
                           color: getRiskColor(avalLevel)
@@ -206,10 +206,10 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                   {/* Flood Risk */}
                   <td className="py-3.5 px-3">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-mono font-bold text-earth-800">
+                      <span className="font-mono font-bold text-earth-800 text-xs sm:text-sm">
                         {floodScore}
                       </span>
-                      <span className="text-[10px] text-earth-500">
+                      <span className="text-xs text-earth-600 font-medium">
                         ({floodLevel})
                       </span>
                     </div>
@@ -217,21 +217,21 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
 
                   {/* Weather — live Open-Meteo telemetry per village */}
                   <td className="py-3.5 px-3">
-                    <div className="text-[11px]">
-                      <span>{village.weather?.temperature}°C</span> ·{' '}
+                    <div className="text-xs sm:text-sm">
+                      <span className="font-medium text-earth-900">{village.weather?.temperature}°C</span> ·{' '}
                       <span className="font-semibold text-blue-700">{village.weather?.snowfall24h ?? village.weather?.snowfall_24h ?? 0}cm snow/24h</span>
                     </div>
-                    <div className="text-[10px] text-earth-500">
+                    <div className="text-xs text-earth-600 mt-0.5">
                       pack {village.weather?.snowDepth ?? village.weather?.snow_depth ?? 0}cm · rain {village.weather?.rainfall24h ?? village.weather?.rainfall ?? 0}mm · {village.weather?.windSpeed ?? village.weather?.wind_speed ?? 0} km/h wind
                     </div>
-                    <div className="text-[10px] font-mono text-earth-400">
+                    <div className="text-xs font-mono text-earth-600 font-semibold mt-0.5">
                       {village.weather?.observationTime ?? ''} · {village.weather?.source ?? ''}
                     </div>
                   </td>
 
                   {/* Primary Trigger */}
                   <td className="py-3.5 px-3">
-                    <span className="inline-block px-2 py-0.5 rounded bg-earth-100 text-earth-800 font-medium text-[11px]">
+                    <span className="inline-block px-2.5 py-1 rounded bg-earth-100 text-earth-800 font-semibold text-xs">
                       {topFactor}
                     </span>
                   </td>
@@ -243,10 +243,10 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                         onSelectVillage(village.id);
                         onSwitchToMap();
                       }}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-terracotta-50 hover:bg-terracotta-100 text-terracotta-700 border border-terracotta-300 rounded-lg text-xs font-bold transition-colors shadow-sm"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-terracotta-50 hover:bg-terracotta-100 text-terracotta-700 border border-terracotta-300 rounded-lg text-xs sm:text-sm font-bold transition-colors shadow-sm cursor-pointer"
                     >
                       <span>Focus</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-3.5 h-3.5" />
                     </button>
                   </td>
 

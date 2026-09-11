@@ -60,8 +60,8 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
       },
       tooltip: {
         backgroundColor: '#26221c',
-        titleFont: { family: 'Nunito', size: 12, weight: 'bold' },
-        bodyFont: { family: 'Nunito', size: 12 },
+        titleFont: { family: 'Inter', size: 13, weight: 'bold' },
+        bodyFont: { family: 'Roboto', size: 12 },
         padding: 10,
         cornerRadius: 8,
         callbacks: {
@@ -78,7 +78,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
           drawBorder: false,
         },
         ticks: {
-          font: { family: 'Nunito', size: 11 },
+          font: { family: 'Roboto', size: 12 },
           color: '#7c6853',
           callback: (value) => `${value}%`,
         },
@@ -88,7 +88,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
           display: false,
         },
         ticks: {
-          font: { family: 'Nunito', size: 12, weight: '600' },
+          font: { family: 'Inter', size: 13, weight: '600' },
           color: '#26221c',
         },
       },
@@ -105,7 +105,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
       return 'Ridge crest winds actively strip windward slopes and pack fragile wind-slabs into lee couloirs.';
     }
     if (nameLower.includes('slope')) {
-      return 'Slopes between 30� and 45� retain maximum snowpack while exceeding critical gravitational shear angles.';
+      return 'Slopes between 30° and 45° retain maximum snowpack while exceeding critical gravitational shear angles.';
     }
     if (nameLower.includes('rain')) {
       return 'Rainfall introduces liquid water into the snowpack, destroying ice grains and causing wet avalanches / GLOFs.';
@@ -124,20 +124,20 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         <div>
           <div className="flex items-center gap-2">
             <Brain className="w-4 h-4 text-terracotta-600" />
-            <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700">
+            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700 font-heading">
               Model Explainability
             </span>
           </div>
-          <h3 className="font-serif text-xl font-bold text-earth-900 mt-0.5">
+          <h3 className="font-heading text-xl sm:text-2xl font-bold text-earth-900 mt-0.5">
             Key Contributing Hazard Drivers
           </h3>
-          <p className="text-xs text-earth-600">
+          <p className="text-xs sm:text-sm text-earth-700 font-medium">
             Feature-importance decomposition from the predictive model for {villageName}
           </p>
         </div>
 
-        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-earth-200/70 text-earth-800 font-medium">
-          <Sparkles className="w-3 h-3 text-terracotta-600" />
+        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-earth-200/70 text-earth-800">
+          <Sparkles className="w-3.5 h-3.5 text-terracotta-600" />
           Explainable AI
         </span>
       </div>
@@ -149,7 +149,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
 
       {/* Narrative Breakdown for Local Officials / Judges */}
       <div className="space-y-2.5">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-earth-700 flex items-center gap-1.5">
+        <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-earth-800 flex items-center gap-1.5 font-heading">
           <span>Physical Factor Interpretation</span>
         </h4>
 
@@ -157,22 +157,22 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
           {sortedFactors.slice(0, 3).map((factor, idx) => (
             <div
               key={factor.name}
-              className="bg-white p-3 rounded-xl border border-earth-200/70 text-xs flex items-start gap-3 shadow-sm hover:border-earth-300 transition-colors"
+              className="bg-white p-3.5 rounded-xl border border-earth-200/70 text-xs sm:text-sm flex items-start gap-3 shadow-sm hover:border-earth-300 transition-colors"
             >
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 mt-0.5"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5 font-heading"
                 style={{ backgroundColor: backgroundColors[idx] }}
               >
                 {idx + 1}
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-earth-900">{factor.name}</span>
-                  <span className="font-mono font-bold text-terracotta-700">
+                  <span className="font-bold text-earth-900 text-sm sm:text-base font-heading">{factor.name}</span>
+                  <span className="font-mono font-bold text-terracotta-700 text-xs sm:text-sm">
                     {(factor.importance * 100).toFixed(1)}% influence
                   </span>
                 </div>
-                <p className="text-earth-600 mt-0.5 leading-relaxed text-[11.5px]">
+                <p className="text-earth-700 mt-1 leading-relaxed text-xs sm:text-sm font-normal">
                   {getFactorExplanation(factor.name, idx)}
                 </p>
               </div>

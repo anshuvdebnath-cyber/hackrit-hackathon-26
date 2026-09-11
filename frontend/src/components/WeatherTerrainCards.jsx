@@ -40,176 +40,176 @@ export default function WeatherTerrainCards({ village }) {
     <div className="bg-earth-50 rounded-2xl p-6 border border-earth-200 shadow-sm space-y-5">
       
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-earth-200 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-earth-200 gap-2">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700">
+          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700">
             Real-Time Telemetry & Terrain
           </span>
-          <h3 className="font-serif text-xl font-bold text-earth-900 mt-0.5">
+          <h3 className="font-heading text-xl sm:text-2xl font-bold text-earth-900 mt-0.5">
             Meteorological & DEM Parameters
           </h3>
         </div>
-        <span className="text-xs text-earth-500 font-medium text-right">
+        <span className="text-xs sm:text-sm text-earth-700 font-medium text-left sm:text-right">
           Source: Open-Meteo live
-          {obsTime ? <span className="block text-[10px] font-mono">Obs: {obsTime}</span> : null}
+          {obsTime ? <span className="block text-xs font-mono text-earth-600 font-semibold">Obs: {obsTime}</span> : null}
         </span>
       </div>
 
       {/* Grid of Telemetry Cards — all values are ORIGINAL Open-Meteo live data */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         
         {/* Temperature Card — live, lapse-corrected to village elevation */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-500 mb-1">
-            <span className="text-xs font-semibold">Temperature</span>
-            <Thermometer className="w-4 h-4 text-terracotta-500" />
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-earth-700 mb-1.5">
+            <span className="text-xs sm:text-sm font-bold">Temperature</span>
+            <Thermometer className="w-4 h-4 text-terracotta-600" />
           </div>
           <div>
-            <div className="text-2xl font-serif font-extrabold text-earth-900">
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
               {temp > 0 ? `+${temp}` : temp}°C
             </div>
-            <div className="text-[11px] text-earth-500 font-medium mt-0.5">
+            <div className="text-xs text-earth-700 font-medium mt-1">
               {temp <= 0 ? 'Sub-zero snowpack freeze' : 'Above freezing; wet thaw risk'}
             </div>
-            <div className="text-[10px] text-earth-400 font-mono mt-0.5">
+            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">
               raw {tempRaw}°C{tempCorrected ? ' (lapse-corr.)' : ''}{humidity != null ? ` · RH ${humidity}%` : ''}
             </div>
           </div>
         </div>
 
         {/* Wind Speed Card */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-500 mb-1">
-            <span className="text-xs font-semibold">Wind Speed</span>
-            <Wind className="w-4 h-4 text-terracotta-500" />
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-earth-700 mb-1.5">
+            <span className="text-xs sm:text-sm font-bold">Wind Speed</span>
+            <Wind className="w-4 h-4 text-terracotta-600" />
           </div>
           <div>
-            <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {wind} <span className="text-sm font-sans font-normal text-earth-600">km/h</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
+              {wind} <span className="text-sm font-normal text-earth-600">km/h</span>
             </div>
-            <div className="text-[11px] text-earth-500 font-medium mt-0.5">
+            <div className="text-xs text-earth-700 font-medium mt-1">
               {isHighWind ? 'Active crest wind-slab drift' : 'Light to moderate breeze'}
             </div>
           </div>
         </div>
 
         {/* 24h Snowfall Card — daily.snowfall_sum (true 24h total, cm) */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-500 mb-1">
-            <span className="text-xs font-semibold">24h Snowfall</span>
-            <CloudSnow className="w-4 h-4 text-terracotta-500" />
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-earth-700 mb-1.5">
+            <span className="text-xs sm:text-sm font-bold">24h Snowfall</span>
+            <CloudSnow className="w-4 h-4 text-terracotta-600" />
           </div>
           <div>
-            <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {snowFall24h} <span className="text-sm font-sans font-normal text-earth-600">cm</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
+              {snowFall24h} <span className="text-sm font-normal text-earth-600">cm</span>
             </div>
-            <div className="text-[11px] text-earth-500 font-medium mt-0.5">
+            <div className="text-xs text-earth-700 font-medium mt-1">
               {isSnowLoading ? 'Heavy fresh slab loading' : 'Moderate or no fresh snow'}
             </div>
-            <div className="text-[10px] text-earth-400 font-mono mt-0.5">daily sum · live</div>
+            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">daily sum · live</div>
           </div>
         </div>
 
         {/* 24h Rainfall Card — daily.rain_sum (true 24h total, mm) */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-500 mb-1">
-            <span className="text-xs font-semibold">24h Rainfall</span>
-            <CloudRain className="w-4 h-4 text-terracotta-500" />
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-earth-700 mb-1.5">
+            <span className="text-xs sm:text-sm font-bold">24h Rainfall</span>
+            <CloudRain className="w-4 h-4 text-terracotta-600" />
           </div>
           <div>
-            <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {rain24h} <span className="text-sm font-sans font-normal text-earth-600">mm</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
+              {rain24h} <span className="text-sm font-normal text-earth-600">mm</span>
             </div>
-            <div className="text-[11px] text-earth-500 font-medium mt-0.5">
+            <div className="text-xs text-earth-700 font-medium mt-1">
               {rain24h > 10 ? 'Heavy runoff / flash flood' : 'Dry precipitation profile'}
             </div>
-            <div className="text-[10px] text-earth-400 font-mono mt-0.5">daily sum · live</div>
+            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">daily sum · live</div>
           </div>
         </div>
 
         {/* Snowpack Depth Card — hourly.snow_depth at observation hour (m -> cm) */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200/80 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-500 mb-1">
-            <span className="text-xs font-semibold">Snowpack Depth</span>
-            <Layers className="w-4 h-4 text-terracotta-500" />
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between text-earth-700 mb-1.5">
+            <span className="text-xs sm:text-sm font-bold">Snowpack Depth</span>
+            <Layers className="w-4 h-4 text-terracotta-600" />
           </div>
           <div>
-            <div className="text-2xl font-serif font-extrabold text-earth-900">
-              {snowPack} <span className="text-sm font-sans font-normal text-earth-600">cm</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
+              {snowPack} <span className="text-sm font-normal text-earth-600">cm</span>
             </div>
-            <div className="text-[11px] text-earth-500 font-medium mt-0.5">
+            <div className="text-xs text-earth-700 font-medium mt-1">
               {snowPack <= 0 ? 'Bare ground at model grid' : snowPack < 30 ? 'Thin / patchy cover' : 'Deep pack — avalanche fuel'}
             </div>
-            <div className="text-[10px] text-earth-400 font-mono mt-0.5">hourly snow_depth · live</div>
+            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">hourly snow_depth · live</div>
           </div>
         </div>
 
       </div>
 
-      <div className="text-[11px] text-earth-500 font-mono bg-white/60 border border-earth-200/70 rounded-lg px-3 py-2">
-        Live: {source} · Obs {obsTime ?? '—'}
-        {modelElev != null ? ` · model elev ${modelElev}m vs village ${elevation}m` : ` · village ${elevation}m`}
-        . Basemap white = static glacier rendering (OpenTopoMap), not live snow.
+      <div className="text-xs sm:text-sm text-earth-700 font-mono bg-white/80 border border-earth-200/90 rounded-xl px-4 py-2.5 leading-relaxed">
+        Live feed: <strong>{source}</strong> · Observation: {obsTime ?? '—'}
+        {modelElev != null ? ` · Model grid: ${modelElev}m (Village DEM: ${elevation}m)` : ` · Village DEM: ${elevation}m`}
+        . High-relief white contours represent static glaciated terrain, not transient surface snow.
       </div>
 
       {/* Terrain DEM Parameters Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         
         {/* Slope Angle Card with Criticality indicator */}
-        <div className={`p-3.5 rounded-xl border flex items-center gap-3 ${
+        <div className={`p-4 rounded-xl border flex items-center gap-3.5 ${
           isCriticalSlope 
-            ? 'bg-clay-50/70 border-clay-300 text-clay-900' 
+            ? 'bg-clay-50/80 border-clay-300 text-clay-950' 
             : 'bg-white border-earth-200 text-earth-900'
         }`}>
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-            isCriticalSlope ? 'bg-clay-500 text-white' : 'bg-earth-100 text-earth-700'
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            isCriticalSlope ? 'bg-clay-500 text-white' : 'bg-earth-100 text-earth-800'
           }`}>
-            <Mountain className="w-5 h-5" />
+            <Mountain className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-[11px] uppercase font-bold tracking-wider opacity-75">
+            <div className="text-xs uppercase font-bold tracking-wider opacity-85">
               Incline Gradient
             </div>
-            <div className="text-lg font-bold">
+            <div className="text-xl font-heading font-extrabold">
               {slope}° Slope
             </div>
-            <div className="text-[11px] opacity-80">
+            <div className="text-xs font-semibold opacity-90 mt-0.5">
               {isCriticalSlope ? 'Within peak avalanche zone (30°-45°)' : 'Outside prime release zone'}
             </div>
           </div>
         </div>
 
         {/* Elevation & Aspect */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-earth-100 text-earth-700 flex items-center justify-center flex-shrink-0">
-            <Compass className="w-5 h-5" />
+        <div className="bg-white p-4 rounded-xl border border-earth-200 flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0">
+            <Compass className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-[11px] uppercase font-bold tracking-wider text-earth-500">
+            <div className="text-xs uppercase font-bold tracking-wider text-earth-600">
               Elevation & Aspect
             </div>
-            <div className="text-lg font-bold text-earth-900">
+            <div className="text-xl font-heading font-extrabold text-earth-950">
               {elevation}m · {aspect}
             </div>
-            <div className="text-[11px] text-earth-600">
+            <div className="text-xs font-semibold text-earth-700 mt-0.5">
               {village.vegetation || 'Alpine Valley'}
             </div>
           </div>
         </div>
 
-        {/* Historical Avalanche Record (HiAVAL) */}
-        <div className="bg-white p-3.5 rounded-xl border border-earth-200 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-terracotta-100 text-terracotta-800 flex items-center justify-center flex-shrink-0">
-            <History className="w-5 h-5" />
+        {/* Avalanche Release History */}
+        <div className="bg-white p-4 rounded-xl border border-earth-200 flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-xl bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0">
+            <ShieldAlert className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-[11px] uppercase font-bold tracking-wider text-terracotta-700">
-              HiAVAL Records
+            <div className="text-xs uppercase font-bold tracking-wider text-earth-600">
+              Historical Threat Activity
             </div>
-            <div className="text-lg font-bold text-earth-900">
+            <div className="text-xl font-heading font-extrabold text-earth-950">
               {hiAval} Recorded Events
             </div>
-            <div className="text-[11px] text-earth-600">
+            <div className="text-xs font-semibold text-earth-700 mt-0.5">
               Historical avalanche path validation
             </div>
           </div>

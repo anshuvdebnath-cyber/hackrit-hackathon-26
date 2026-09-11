@@ -11,8 +11,10 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        serif: ['Fraunces', 'serif'],
-        sans: ['Nunito', 'sans-serif'],
+        heading: ['Inter', 'sans-serif'],
+        serif: ['Inter', 'sans-serif'], // guarantees all existing heading classes render with Inter
+        sans: ['Roboto', 'sans-serif'],
+        body: ['Roboto', 'sans-serif'],
       },
       colors: {
         moss: {
