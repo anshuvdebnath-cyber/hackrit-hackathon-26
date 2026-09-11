@@ -57,20 +57,23 @@ FEATURE_NAMES = [
 ]
 
 FEATURE_DESCRIPTIONS = {
-    "temperature_C": "Temperature",
+    "temperature_C": "Air Temperature",
     "dewpoint_C": "Dew Point",
-    "precip_mm": "Precipitation",
-    "snowfall_mm": "Snowfall",
-    "snow_depth_mm": "Snow Depth",
-    "pressure_hPa": "Pressure",
-    "wind_speed": "Wind Speed",
+    "precip_mm": "Precipitation Rate",
+    "snowfall_mm": "Fresh Snowfall",
+    "snow_depth_mm": "Snowpack Depth",
+    "pressure_hPa": "Atmospheric Pressure",
+    "wind_speed": "Ridge Wind Speed",
     "relative_humidity": "Relative Humidity",
-    "month": "Month"
+    "month": "Seasonal Vulnerability"
 }
 
 # 2. Dynamic Model Loader supporting joblib, pkl, pickle, and native XGBoost json/ubj
 MODEL_CANDIDATE_NAMES = [
     "xgb_avalanche_final.json",
+    "training-data/training/json/xgb_avalanche_final.json",
+    "training-data/xgb_avalanche_final.json",
+    "training-data/training/pickle file/xgb_avalanche_final.pkl",
     "model.joblib",
     "model.pkl",
     "model.pickle",
@@ -97,27 +100,31 @@ model_file_loaded: Optional[str] = None
 
 def load_ml_model() -> bool:
     global model, model_type, model_file_loaded
-    dir_path = os.path.dirname(__file__)
+    dir_path = os.path.dirname(os.path.abspath(__file__))
+    cwd_path = os.getcwd()
     
-    for fname in MODEL_CANDIDATE_NAMES:
-        candidate_path = os.path.join(dir_path, fname)
-        if os.path.exists(candidate_path):
-            try:
-                if fname.endswith((".json", ".ubj", ".bin")):
-                    import xgboost as xgb
-                    booster = xgb.Booster()
-                    booster.load_model(candidate_path)
-                    model = booster
-                    model_type = "xgb_booster"
-                else:
-                    model = joblib.load(candidate_path)
-                    model_type = "scikit_or_xgb_sklearn"
-                
-                model_file_loaded = fname
-                print(f"[OK] Successfully loaded trained ML model from {candidate_path} (type: {model_type})")
-                return True
-            except Exception as e:
-                print(f"[WARN] Failed to load {candidate_path}: {e}")
+    search_dirs = [dir_path, cwd_path, os.path.join(cwd_path, "ml-service")]
+    
+    for base in search_dirs:
+        for fname in MODEL_CANDIDATE_NAMES:
+            candidate_path = os.path.normpath(os.path.join(base, fname))
+            if os.path.exists(candidate_path):
+                try:
+                    if candidate_path.endswith((".json", ".ubj", ".bin")):
+                        import xgboost as xgb
+                        booster = xgb.Booster()
+                        booster.load_model(candidate_path)
+                        model = booster
+                        model_type = "xgb_booster"
+                    else:
+                        model = joblib.load(candidate_path)
+                        model_type = "scikit_or_xgb_sklearn"
+                    
+                    model_file_loaded = fname
+                    print(f"[OK] Successfully loaded trained ML model from {candidate_path} (type: {model_type})")
+                    return True
+                except Exception as e:
+                    print(f"[WARN] Failed to load {candidate_path}: {e}")
     
     model = None
     model_type = "none"
@@ -129,7 +136,6 @@ load_ml_model()
 
 @app.get("/health")
 def health():
-    # If not loaded yet, attempt check in case teammate just dropped it into the folder
     if model is None:
         load_ml_model()
         
@@ -177,7 +183,7 @@ def predict(data: PredictRequest):
 
     if model is not None:
         try:
-            raw_prediction = 50.0
+            raw_prediction = 0.05
             
             # Check if native xgb.Booster
             if model_type == "xgb_booster":
@@ -185,42 +191,56 @@ def predict(data: PredictRequest):
                 dmatrix = xgb.DMatrix(features, feature_names=FEATURE_NAMES)
                 raw_pred = model.predict(dmatrix)
                 raw_prediction = float(raw_pred[0])
-            # Check for classification predict_proba
+                
+                # Extract per-sample TreeSHAP attribution
+                try:
+                    contribs = model.predict(dmatrix, pred_contribs=True)[0][:len(FEATURE_NAMES)]
+                    pos_c = np.maximum(0, contribs)
+                    if pos_c.sum() > 0:
+                        local_w = pos_c / pos_c.sum()
+                    else:
+                        abs_c = np.abs(contribs)
+                        local_w = abs_c / (abs_c.sum() or 1.0)
+                except Exception:
+                    local_w = np.ones(len(FEATURE_NAMES)) / len(FEATURE_NAMES)
+                
+                # Global gain importances
+                try:
+                    gain_scores = model.get_score(importance_type='gain')
+                    total_gain = sum(gain_scores.values()) or 1.0
+                    global_w = np.array([gain_scores.get(k, 0.0) / total_gain for k in FEATURE_NAMES])
+                except Exception:
+                    global_w = np.ones(len(FEATURE_NAMES)) / len(FEATURE_NAMES)
+                
+                # Blend local TreeSHAP with global gain
+                blended = 0.70 * local_w + 0.30 * global_w
+                importances = [float(x) for x in (blended / (blended.sum() or 1.0))]
+
             elif hasattr(model, "predict_proba"):
                 proba = model.predict_proba(features)
-                if proba.shape[1] > 1:
-                    raw_prediction = float(proba[0][1]) * 100.0
+                raw_prediction = float(proba[0][1] if proba.shape[1] > 1 else proba[0][0])
+                if hasattr(model, "feature_importances_"):
+                    importances = [float(x) for x in getattr(model, "feature_importances_")]
                 else:
-                    raw_prediction = float(proba[0][0]) * 100.0
-            # Standard predict (XGBRegressor or Pipeline)
-            elif hasattr(model, "predict"):
-                import pandas as pd
-                # Pass with column names if model expects named features
-                df_features = pd.DataFrame([feature_values], columns=FEATURE_NAMES)
-                try:
-                    preds = model.predict(df_features)
-                except Exception:
-                    preds = model.predict(features)
-                raw_prediction = float(preds[0])
-
-            score = raw_prediction * 100 if raw_prediction <= 1.0 else raw_prediction
-            score = round(min(99.0, max(5.0, score)), 1)
-            
-            # Extract XGBoost feature importances if available
-            if hasattr(model, "feature_importances_"):
-                importances = [float(x) for x in getattr(model, "feature_importances_")]
-            elif hasattr(model, "get_score"):
-                # Native Booster feature importance
-                scores = model.get_score(importance_type='weight')
-                total = sum(scores.values()) or 1.0
-                importances = [scores.get(k, 0.0) / total for k in FEATURE_NAMES]
+                    importances = [1.0 / len(FEATURE_NAMES)] * len(FEATURE_NAMES)
             else:
+                raw_prediction = float(model.predict(features)[0])
                 importances = [1.0 / len(FEATURE_NAMES)] * len(FEATURE_NAMES)
+
+            # Terrain & Physics Synthesis:
+            # 1. If snowpack is negligible (< 5cm), slab release is physically minimal.
+            if data.snow_depth < 5.0:
+                score = round(float(np.clip(3.0 + (data.slope_angle / 45.0) * 4.0 + (raw_prediction * 25.0), 3.0, 14.0)), 1)
+            else:
+                # 2. Calibrated ML probability modulated by DEM slope angle (30°-45° prime zone)
+                base_score = 10.0 + (raw_prediction ** 0.5) * 110.0
+                slope_mult = 1.15 if (32.0 <= data.slope_angle <= 45.0) else (1.0 if (26.0 <= data.slope_angle <= 50.0) else 0.82)
+                score = round(float(np.clip(base_score * slope_mult, 8.0, 99.0)), 1)
+
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Model inference failed: {str(err)}")
     else:
-        # If there is no snow on the ground (< 5cm), avalanche release is physically
-        # impossible — but vary score 3-14 with terrain so pins don't all read flat 3.
+        # Calibrated fallback if model file is missing
         if data.snow_depth < 5.0:
             slope_f = 4.0 if 30 <= data.slope_angle <= 45 else (2.0 if data.slope_angle > 45 else 1.0)
             wind_f = min(3.0, max(0.0, (data.wind_speed - 5) * 0.15))
@@ -234,7 +254,6 @@ def predict(data: PredictRequest):
             importances[0] = 0.20
             importances[2] = 0.20
         else:
-            # Calibrated baseline physics heuristic while training is in progress
             slope_score = max(20.0, 95.0 - abs(data.slope_angle - 38.0) * 4.5) if (25 <= data.slope_angle <= 45) else 25.0
             snow_score = min(100.0, (data.snow_depth / 60.0) * 85.0)
             wind_score = min(100.0, (data.wind_speed / 40.0) * 85.0)
@@ -246,7 +265,7 @@ def predict(data: PredictRequest):
             importances = [0.12, 0.10, 0.08, 0.16, 0.22, 0.08, 0.14, 0.07, 0.03]
 
     # Assign risk level
-    level = "High" if score > 70 else "Moderate" if score > 40 else "Low"
+    level = "High" if score >= 70.0 else ("Moderate" if score >= 40.0 else "Low")
 
     # Build ranked feature importance list for Chart.js
     ranked_factors = [
@@ -259,11 +278,11 @@ def predict(data: PredictRequest):
     if data.snow_depth < 5.0:
         explanation = f"Negligible avalanche hazard: Ground is clear of snowpack ({data.snow_depth}cm). Slope is currently stable."
     elif level == "High":
-        explanation = f"Critical hazard alert: {ranked_factors[0]['name']} is primary driver. Slope at {data.slope_angle}° in high shear failure zone."
+        explanation = f"Critical hazard alert: {ranked_factors[0]['name']} is primary driver. Slope at {data.slope_angle}° falls in acute shear zone."
     elif level == "Moderate":
-        explanation = f"Moderate instability: {ranked_factors[0]['name']} elevated. Caution advised along exposed avalanche chutes."
+        explanation = f"Moderate instability: {ranked_factors[0]['name']} elevated under current weather. Caution advised along steep gullies."
     else:
-        explanation = "Stable snowpack conditions under current telemetry."
+        explanation = "Stable snowpack conditions under current atmospheric and terrain telemetry."
 
     return {
         "score": score,
