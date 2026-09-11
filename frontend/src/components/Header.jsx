@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mountain, ShieldAlert, Activity, Compass, Layers, Sliders, Table } from 'lucide-react';
+import { Mountain, ShieldAlert, Activity, Compass, Layers, Sliders, Table, RefreshCw, Satellite } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -7,7 +7,10 @@ export default function Header({
   villages, 
   selectedVillageId, 
   onSelectVillage,
-  highRiskCount
+  highRiskCount,
+  dataSource = 'backend',
+  isRefreshing = false,
+  onRefresh
 }) {
   return (
     <header className="bg-earth-900 text-earth-50 border-b border-earth-800 sticky top-0 z-[100] shadow-md">
@@ -19,21 +22,31 @@ export default function Header({
             Telemetry Online
           </span>
           <span className="hidden sm:inline text-earth-400">|</span>
-          <span className="hidden sm:inline">HiAVAL Historical Database Synced</span>
+          <span className="hidden sm:inline">HiAVAL Historical Records Synced</span>
           <span className="hidden md:inline text-earth-400">|</span>
-          <span className="hidden md:inline">ALOS PALSAR 12.5m DEM Terrain Active</span>
+          <span className="hidden md:inline">Open-Meteo Satellite Feed Connected</span>
         </div>
 
         <div className="flex items-center space-x-3 text-xs">
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-earth-800 hover:bg-earth-700 text-terracotta-300 border border-earth-700 font-semibold transition"
+              title="Force immediate live Open-Meteo satellite feed sync"
+            >
+              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-terracotta-400' : 'text-moss-400'}`} />
+              <span>{isRefreshing ? 'Fetching Satellite...' : 'Live Satellite Sync'}</span>
+            </button>
+          )}
           {highRiskCount > 0 ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-clay-500/30 text-clay-200 border border-clay-500/50 font-semibold">
               <ShieldAlert className="w-3.5 h-3.5 text-clay-300" />
-              {highRiskCount} High Risk Alert{highRiskCount > 1 ? 's' : ''} Active
+              {highRiskCount} Alert{highRiskCount > 1 ? 's' : ''}
             </span>
           ) : (
-            <span className="text-moss-400">All monitored sectors normal</span>
+            <span className="text-moss-400">All sectors normal</span>
           )}
-          <span className="text-earth-400 hidden sm:inline">Himalayan Standard Time</span>
         </div>
       </div>
 

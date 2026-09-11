@@ -3,17 +3,19 @@ import { VILLAGES } from '../data/villages';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 /**
- * Fetch list of all monitored villages
+ * Fetch list of all monitored villages with live Open-Meteo telemetry
  */
-export async function fetchVillages() {
+export async function fetchVillages(forceRefresh = false) {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/villages`, { signal: AbortSignal.timeout(6000) });
+    const url = forceRefresh ? `${BACKEND_URL}/api/villages?refresh=true` : `${BACKEND_URL}/api/villages`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       const data = await res.json();
+      console.log('[TerraWatch] Live Open-Meteo telemetry loaded for villages:', data.map(v => `${v.name}: ${v.weather?.temperature}°C`));
       return { data, source: 'backend' };
     }
-  } catch {
-    // Backend offline; use local offline dataset
+  } catch (err) {
+    console.warn('[TerraWatch] Backend /api/villages not reachable or timed out, using fallback:', err.message);
   }
   return { data: VILLAGES, source: 'local' };
 }
@@ -21,15 +23,16 @@ export async function fetchVillages() {
 /**
  * Fetch single village risk data matching PRD contract
  */
-export async function fetchVillageRisk(villageId) {
+export async function fetchVillageRisk(villageId, forceRefresh = false) {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/risk/${villageId}`, { signal: AbortSignal.timeout(6000) });
+    const url = forceRefresh ? `${BACKEND_URL}/api/risk/${villageId}?refresh=true` : `${BACKEND_URL}/api/risk/${villageId}`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (res.ok) {
       const data = await res.json();
       return { ...data, source: 'live-backend' };
     }
-  } catch {
-    // Fallback to local data
+  } catch (err) {
+    console.warn(`[TerraWatch] Live risk fetch failed for ${villageId}:`, err.message);
   }
 
   const village = VILLAGES.find(v => v.id === villageId) || VILLAGES[0];
@@ -211,20 +214,22 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = 36) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lat, lng, slope_angle: slopeAngle }),
-      signal: AbortSignal.timeout(6000)
+      signal: AbortSignal.timeout(8000)
     });
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      console.log('[TerraWatch] Real-time coordinate weather fetched from Open-Meteo:', data.weather);
+      return data;
     }
-  } catch {
-    // Fallback to local simulation if offline
+  } catch (err) {
+    console.warn('[TerraWatch] Live coordinate prediction failed, using fallback:', err.message);
   }
 
   const simulated = calculateSimulatedRisk({
-    snow_depth: 40,
+    snow_depth: 0,
     slope_angle: slopeAngle,
-    wind_speed: 18,
-    temperature: -3.0,
+    wind_speed: 12,
+    temperature: 16.0,
     rainfall: 0
   });
 
@@ -233,11 +238,12 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = 36) {
     slopeAngle,
     ...simulated,
     weather: {
-      temperature: -3.0,
-      windSpeed: 18,
-      snowfall24h: 8,
+      temperature: 16.0,
+      windSpeed: 12,
+      snowfall24h: 0,
       rainfall24h: 0,
-      snowDepth: 40
+      snowDepth: 0,
+      source: 'simulated-offline'
     },
     source: 'simulated-local',
     evaluatedAt: new Date().toISOString()

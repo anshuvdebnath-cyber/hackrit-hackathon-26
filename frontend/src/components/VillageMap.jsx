@@ -308,7 +308,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 text-xs text-earth-800 mb-2.5">
+                    <div className="grid grid-cols-2 gap-1.5 text-xs text-earth-800 mb-2">
                       <div className="bg-earth-100/90 p-1.5 rounded">
                         <span className="text-[10px] text-earth-500 block">Est. Elevation</span>
                         <span className="font-bold">{customPin.data.elevation || 2850}m</span>
@@ -319,7 +319,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       </div>
                       <div className="bg-earth-100/90 p-1.5 rounded">
                         <span className="text-[10px] text-earth-500 block">Live Temp / Wind</span>
-                        <span className="font-bold">{customPin.data.weather?.temperature}°C / {customPin.data.weather?.windSpeed}km/h</span>
+                        <span className="font-bold">{customPin.data.weather?.temperature}°C / {customPin.data.weather?.windSpeed ?? customPin.data.weather?.wind_speed ?? 0} km/h</span>
                       </div>
                       <div className="bg-earth-100/90 p-1.5 rounded">
                         <span className="text-[10px] text-earth-500 block">Avalanche Score</span>
@@ -327,6 +327,11 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                           {customPin.data.avalancheRisk?.score}/100
                         </span>
                       </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] text-earth-600 bg-earth-100/90 px-2 py-0.5 rounded mb-2 font-mono">
+                      <span>Feed: {customPin.data.weather?.source || 'live-open-meteo'}</span>
+                      <span>Snow: {customPin.data.weather?.snowDepth ?? customPin.data.weather?.snow_depth ?? 0}cm</span>
                     </div>
 
                     {customPin.data.explanation && (
@@ -383,7 +388,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                   <div className="grid grid-cols-2 gap-2 text-xs text-earth-800 mb-3">
                     <div className="bg-earth-100/80 p-1.5 rounded">
                       <span className="text-[10px] text-earth-500 block">Slope Angle</span>
-                      <span className="font-bold">{v.slopeAngle}�</span>
+                      <span className="font-bold">{v.slopeAngle}°</span>
                     </div>
                     <div className="bg-earth-100/80 p-1.5 rounded">
                       <span className="text-[10px] text-earth-500 block">Elevation</span>
@@ -391,7 +396,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                     </div>
                     <div className="bg-earth-100/80 p-1.5 rounded">
                       <span className="text-[10px] text-earth-500 block">Temp / Wind</span>
-                      <span className="font-bold">{v.weather?.temperature}�C / {v.weather?.windSpeed}km/h</span>
+                      <span className="font-bold">{v.weather?.temperature}°C / {v.weather?.windSpeed ?? v.weather?.wind_speed ?? 0} km/h</span>
                     </div>
                     <div className="bg-earth-100/80 p-1.5 rounded">
                       <span className="text-[10px] text-earth-500 block">Avalanche Risk</span>

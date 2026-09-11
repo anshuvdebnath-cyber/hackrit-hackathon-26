@@ -16,6 +16,31 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('map');
   const [loading, setLoading] = useState(true);
   const [dataSource, setDataSource] = useState('local');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Manual or automatic refresh handler
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    const { data, source } = await fetchVillages(true);
+    setVillages(data);
+    setDataSource(source);
+    if (selectedVillageId) {
+      const riskData = await fetchVillageRisk(selectedVillageId, true);
+      setSelectedVillageData(riskData);
+    }
+    setIsRefreshing(false);
+  };
+
+  // Periodic background telemetry refresh every 2 minutes for real-time live satellite accuracy
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchVillages(true).then(({ data, source }) => {
+        setVillages(data);
+        setDataSource(source);
+      });
+    }, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load initial villages
   useEffect(() => {
@@ -56,6 +81,9 @@ export default function App() {
         selectedVillageId={selectedVillageId}
         onSelectVillage={(id) => setSelectedVillageId(id)}
         highRiskCount={highRiskCount}
+        dataSource={dataSource}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
       />
 
       {/* Main Content Area */}
