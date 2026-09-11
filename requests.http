@@ -1,0 +1,90 @@
+### ===================================================================
+### TERRA WATCH - API TEST SUITE (Compatible with httpyac & REST Client)
+### ===================================================================
+
+@baseUrl = http://localhost:5000
+@mlUrl = http://localhost:8000
+
+### 1. Backend Health Check
+GET {{baseUrl}}/health
+
+### -------------------------------------------------------------------
+### 2. Check Live Weather & Risk for Old Manali (32.259°N, 77.175°E)
+### Notice the "weather" object returning real-time temperature & wind!
+GET {{baseUrl}}/api/risk/manali-01
+
+### -------------------------------------------------------------------
+### 3. Check Live Weather & Risk for Gulmarg Apharwat Ridge
+GET {{baseUrl}}/api/risk/gulmarg-02
+
+### -------------------------------------------------------------------
+### 4. Check Live Weather & Risk for Kedarnath Shrine Basin
+GET {{baseUrl}}/api/risk/kedarnath-03
+
+### -------------------------------------------------------------------
+### 5. Check Live Weather & Risk for Dras (Coldest Inhabited Sector)
+GET {{baseUrl}}/api/risk/dras-04
+
+### -------------------------------------------------------------------
+### 6. Get All 8 Monitored Villages (Map Pins & Comparative Matrix)
+GET {{baseUrl}}/api/villages
+
+### -------------------------------------------------------------------
+### 7. PREDICT ANY ARBITRARY GPS COORDINATE ON EARTH
+### Pulls live weather for that exact point and predicts avalanche risk!
+POST {{baseUrl}}/api/predict-coordinate
+Content-Type: application/json
+
+{
+  "lat": 34.37,
+  "lng": 80.24,
+  "slope_angle": 38
+}
+
+### -------------------------------------------------------------------
+### 8. Interactive What-If Scenario Sandbox Simulation
+POST {{baseUrl}}/api/simulate
+Content-Type: application/json
+
+{
+  "snow_depth": 55,
+  "slope_angle": 38,
+  "wind_speed": 32,
+  "temperature": -7.5,
+  "rainfall": 0
+}
+
+### -------------------------------------------------------------------
+### 9. Get High-Risk Emergency Alerts
+GET {{baseUrl}}/api/alerts
+
+### -------------------------------------------------------------------
+### 10. Generate Official SDRF / NDRF Evacuation Dispatch Advisory
+GET {{baseUrl}}/api/dispatch/gulmarg-02
+
+### -------------------------------------------------------------------
+### 11. Direct Satellite Check: Open-Meteo Weather API (Raw Feed)
+### Compare this directly against what {{baseUrl}}/api/risk/manali-01 returns!
+GET https://api.open-meteo.com/v1/forecast?latitude=32.2590&longitude=77.1750&current=temperature_2m,relative_humidity_2m,wind_speed_10m,snowfall,rain&timezone=auto
+
+### -------------------------------------------------------------------
+### 12. Direct ML Service Health Check (FastAPI)
+GET {{mlUrl}}/health
+
+### -------------------------------------------------------------------
+### 13. Direct ML Prediction Endpoint (FastAPI + XGBoost)
+POST {{mlUrl}}/predict
+Content-Type: application/json
+
+{
+  "snow_depth": 45,
+  "slope_angle": 38,
+  "wind_speed": 22,
+  "temperature": -4,
+  "rainfall": 0
+}
+
+### -------------------------------------------------------------------
+### 14. Backend Open-Meteo Proxy & Cache Test for Any GPS Coordinates
+GET {{baseUrl}}/api/weather?lat=32.2432&lng=77.1892
+

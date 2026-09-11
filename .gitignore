@@ -1,7 +1,13 @@
 node_modules/
+**/node_modules/
 .env
-.env.local
+.env.*
+**/.env
 dist/
+**/dist/
 build/
 .DS_Store
 Thumbs.db
+.venv/
+__pycache__/
+*.pyc

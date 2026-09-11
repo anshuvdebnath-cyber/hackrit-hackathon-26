@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "./ml-service",
+    "./.venv/Lib/site-packages",
+    "C:\\Users\\ANSHUV DEBNATH\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages"
+  ],
+  "python.analysis.autoSearchPaths": true,
+  "python.analysis.typeCheckingMode": "basic"
+}
