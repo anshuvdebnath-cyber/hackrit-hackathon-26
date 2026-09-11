@@ -28,7 +28,15 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
     slope_angle: village.slopeAngle,
     wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
     temperature: weather.temperature,
-    rainfall: weather.rainfall ?? weather.rainfall24h ?? 0
+    rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+    temperature_C: weather.temperature_C,
+    dewpoint_C: weather.dewpoint_C,
+    precip_mm: weather.precip_mm,
+    snowfall_mm: weather.snowfall_mm,
+    snow_depth_mm: (weather.snow_depth ?? weather.snowDepth ?? 0) * 10,
+    pressure_hPa: weather.pressure_hPa,
+    relative_humidity: weather.relative_humidity,
+    month: weather.observationTime ? new Date(weather.observationTime).getMonth() + 1 : undefined
   });
 
   // 3. Estimate Flash Flood / GLOF Risk
@@ -109,12 +117,12 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
 router.get('/villages', async (req, res) => {
   try {
     const forceRefresh = req.query.refresh === 'true';
-    
+
     // Batch fetch live weather for all monitored villages
     const weatherMap = await fetchBatchWeather(VILLAGES, forceRefresh);
 
     // Compute telemetry in parallel
-    const telemetryPromises = VILLAGES.map(v => 
+    const telemetryPromises = VILLAGES.map(v =>
       computeVillageTelemetry(v, weatherMap.get(v.id), forceRefresh)
     );
     const results = await Promise.all(telemetryPromises);
@@ -173,7 +181,15 @@ router.post('/predict-coordinate', async (req, res) => {
       slope_angle: slopeAngle,
       wind_speed: weather.wind_speed ?? weather.windSpeed ?? 10,
       temperature: weather.temperature,
-      rainfall: weather.rainfall ?? weather.rainfall24h ?? 0
+      rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
+      temperature_C: weather.temperature_C,
+      dewpoint_C: weather.dewpoint_C,
+      precip_mm: weather.precip_mm,
+      snowfall_mm: weather.snowfall_mm,
+      snow_depth_mm: (weather.snow_depth ?? weather.snowDepth ?? 0) * 10,
+      pressure_hPa: weather.pressure_hPa,
+      relative_humidity: weather.relative_humidity,
+      month: weather.observationTime ? new Date(weather.observationTime).getMonth() + 1 : undefined
     });
 
     let floodRaw = (weather.rainfall ?? 0) * 2.2 + Math.max(0, weather.temperature * 1.8);
@@ -372,8 +388,8 @@ router.get('/dispatch/:villageId', async (req, res) => {
       recommendedAction: isHigh
         ? 'IMMEDIATE EVACUATION / SHELTER-IN-PLACE: Prohibit movement through leeward gullies and avalanche runout zones.'
         : isMod
-        ? 'HEIGHTENED WATCH: Suspend high-altitude trekking; monitor snowpack bonding along steep chutes.'
-        : 'ROUTINE MONITORING: Standard winter precautions; routes currently assessed as stable.'
+          ? 'HEIGHTENED WATCH: Suspend high-altitude trekking; monitor snowpack bonding along steep chutes.'
+          : 'ROUTINE MONITORING: Standard winter precautions; routes currently assessed as stable.'
     };
 
     res.json(advisory);

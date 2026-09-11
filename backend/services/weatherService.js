@@ -14,12 +14,16 @@ function getBaselineWeather(lat, _lng) {
   const temp = isHighAltitude ? 8.5 : 19.0;
   return {
     temperature: temp,
+    temperature_C: temp,
+    dewpoint_C: temp - 2.0,
     temperature_raw: temp,
     temperature_corrected: false,
     modelElevation: null,
     wind_speed: 12.0,
     windSpeed: 12.0,
+    pressure_hPa: 700.0,
     humidity: null,
+    relative_humidity: 70.0,
     weather_code: null,
     // No snowpack known offline
     snow_depth: 0.0,
@@ -27,9 +31,11 @@ function getBaselineWeather(lat, _lng) {
     snow_depth_now_m: 0,
     snowfall_24h: 0.0,
     snowfall24h: 0.0,
+    snowfall_mm: 0.0,
     snowfall_now: 0.0,
     rainfall: 0.0,
     rainfall24h: 0.0,
+    precip_mm: 0.0,
     rain_now: 0.0,
     observationTime: null,
     source: 'offline-fallback (open-meteo unreachable)',
@@ -68,7 +74,9 @@ function normalizeWeatherData(apiData, villageElevation = null) {
   const modelElevation = apiData.elevation ?? null;
 
   const temperature_raw = current.temperature_2m !== undefined ? current.temperature_2m : null;
+  const dewpoint_C = current.dew_point_2m ?? null;
   const wind_speed = current.wind_speed_10m !== undefined ? current.wind_speed_10m : null;
+  const pressure_hPa = current.surface_pressure ?? current.pressure_msl ?? null;
   const humidity = current.relative_humidity_2m ?? null;
   const weather_code = current.weather_code ?? null;
 
@@ -133,22 +141,28 @@ function normalizeWeatherData(apiData, villageElevation = null) {
 
   return {
     temperature,
+    temperature_C: temperature,
+    dewpoint_C: dewpoint_C ?? temperature - 2.0,
     temperature_raw,
     temperature_corrected,
     modelElevation,
     villageElevation: villageElevation ?? null,
     wind_speed: wind_speed ?? 8.0,
     windSpeed: wind_speed ?? 8.0,
+    pressure_hPa: pressure_hPa ?? 700.0,
     humidity,
+    relative_humidity: humidity ?? 70.0,
     weather_code,
     snow_depth: Math.max(0, snow_depth),
     snowDepth: Math.max(0, snow_depth),
     snow_depth_now_m,
     snowfall_24h,
     snowfall24h: snowfall_24h,
+    snowfall_mm: snowfall_24h * 10.0,
     snowfall_now,
     rainfall,
     rainfall24h: rainfall,
+    precip_mm: rainfall,
     rain_now,
     observationTime: current.time || null,
     source: 'live-open-meteo',
@@ -157,7 +171,7 @@ function normalizeWeatherData(apiData, villageElevation = null) {
 }
 
 const CURRENT_PARAMS =
-  'temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,snowfall,rain,precipitation,weather_code,cloud_cover';
+  'temperature_2m,dew_point_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,snowfall,rain,precipitation,surface_pressure,pressure_msl,weather_code,cloud_cover';
 const HOURLY_PARAMS = 'snow_depth,temperature_2m';
 const DAILY_PARAMS = 'snowfall_sum,rain_sum,snow_depth_max,temperature_2m_max,temperature_2m_min';
 
