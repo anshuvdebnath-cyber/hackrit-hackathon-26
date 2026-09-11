@@ -56,101 +56,104 @@ export default function WeatherTerrainCards({ village }) {
         </span>
       </div>
 
-      {/* Grid of Telemetry Cards — all values are ORIGINAL Open-Meteo live data */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+      {/* Grid of Telemetry Cards — all values aligned at the exact same level */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5 items-stretch">
         
-        {/* Temperature Card — live, lapse-corrected to village elevation */}
-        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-700 mb-1.5">
-            <span className="text-xs sm:text-sm font-bold">Temperature</span>
-            <Thermometer className="w-4 h-4 text-terracotta-600" />
+        {/* 1. Temperature Card */}
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between h-full min-h-[170px]">
+          <div className="flex items-center justify-between text-earth-700 h-6 gap-1">
+            <span className="text-xs sm:text-sm font-bold font-heading truncate">Temperature</span>
+            <Thermometer className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
-          <div>
+          <div className="my-1">
             <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
               {temp > 0 ? `+${temp}` : temp}°C
             </div>
-            <div className="text-xs text-earth-700 font-medium mt-1">
-              {temp <= 0 ? 'Sub-zero snowpack freeze' : 'Above freezing; wet thaw risk'}
+            <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
+              {temp <= 0 ? 'Sub-zero freeze' : 'Above freezing; thaw risk'}
             </div>
-            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">
-              raw {tempRaw}°C{tempCorrected ? ' (lapse-corr.)' : ''}{humidity != null ? ` · RH ${humidity}%` : ''}
-            </div>
+          </div>
+          <div className="text-[11px] sm:text-xs text-earth-600 font-mono font-semibold pt-1.5 border-t border-earth-100/90 truncate">
+            raw {tempRaw}°C{humidity != null ? ` · RH ${humidity}%` : ''}
           </div>
         </div>
 
-        {/* Wind Speed Card */}
-        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-700 mb-1.5">
-            <span className="text-xs sm:text-sm font-bold">Wind Speed</span>
-            <Wind className="w-4 h-4 text-terracotta-600" />
+        {/* 2. Wind Speed Card */}
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between h-full min-h-[170px]">
+          <div className="flex items-center justify-between text-earth-700 h-6 gap-1">
+            <span className="text-xs sm:text-sm font-bold font-heading truncate">Wind Speed</span>
+            <Wind className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
-          <div>
+          <div className="my-1">
             <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {wind} <span className="text-sm font-normal text-earth-600">km/h</span>
+              {wind} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">km/h</span>
             </div>
-            <div className="text-xs text-earth-700 font-medium mt-1">
+            <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {isHighWind ? 'Active crest wind-slab drift' : 'Light to moderate breeze'}
             </div>
           </div>
-        </div>
-
-        {/* 24h Snowfall Card — daily.snowfall_sum (true 24h total, cm) */}
-        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-700 mb-1.5">
-            <span className="text-xs sm:text-sm font-bold">24h Snowfall</span>
-            <CloudSnow className="w-4 h-4 text-terracotta-600" />
-          </div>
-          <div>
-            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {snowFall24h} <span className="text-sm font-normal text-earth-600">cm</span>
-            </div>
-            <div className="text-xs text-earth-700 font-medium mt-1">
-              {isSnowLoading ? 'Heavy fresh slab loading' : 'Moderate or no fresh snow'}
-            </div>
-            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">daily sum · live</div>
+          <div className="text-[11px] sm:text-xs text-earth-600 font-mono font-semibold pt-1.5 border-t border-earth-100/90 truncate">
+            ridge telemetry · live
           </div>
         </div>
 
-        {/* 24h Rainfall Card — daily.rain_sum (true 24h total, mm) */}
-        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-700 mb-1.5">
-            <span className="text-xs sm:text-sm font-bold">24h Rainfall</span>
-            <CloudRain className="w-4 h-4 text-terracotta-600" />
+        {/* 3. 24h Snowfall Card */}
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between h-full min-h-[170px]">
+          <div className="flex items-center justify-between text-earth-700 h-6 gap-1">
+            <span className="text-xs sm:text-sm font-bold font-heading truncate">24h Snowfall</span>
+            <CloudSnow className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
-          <div>
+          <div className="my-1">
             <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {rain24h} <span className="text-sm font-normal text-earth-600">mm</span>
+              {snowFall24h} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">cm</span>
             </div>
-            <div className="text-xs text-earth-700 font-medium mt-1">
+            <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
+              {isSnowLoading ? 'Heavy slab loading' : 'Moderate or no fresh snow'}
+            </div>
+          </div>
+          <div className="text-[11px] sm:text-xs text-earth-600 font-mono font-semibold pt-1.5 border-t border-earth-100/90 truncate">
+            daily sum · live
+          </div>
+        </div>
+
+        {/* 4. 24h Rainfall Card */}
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between h-full min-h-[170px]">
+          <div className="flex items-center justify-between text-earth-700 h-6 gap-1">
+            <span className="text-xs sm:text-sm font-bold font-heading truncate">24h Rainfall</span>
+            <CloudRain className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
+          </div>
+          <div className="my-1">
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
+              {rain24h} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">mm</span>
+            </div>
+            <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {rain24h > 10 ? 'Heavy runoff / flash flood' : 'Dry precipitation profile'}
             </div>
-            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">daily sum · live</div>
+          </div>
+          <div className="text-[11px] sm:text-xs text-earth-600 font-mono font-semibold pt-1.5 border-t border-earth-100/90 truncate">
+            daily sum · live
           </div>
         </div>
 
-        {/* Snowpack Depth Card — hourly.snow_depth at observation hour (m -> cm) */}
-        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between text-earth-700 mb-1.5">
-            <span className="text-xs sm:text-sm font-bold">Snowpack Depth</span>
-            <Layers className="w-4 h-4 text-terracotta-600" />
+        {/* 5. Snowpack Depth Card */}
+        <div className="bg-white p-4 rounded-xl border border-earth-200/90 shadow-sm flex flex-col justify-between h-full min-h-[170px]">
+          <div className="flex items-center justify-between text-earth-700 h-6 gap-1">
+            <span className="text-xs sm:text-sm font-bold font-heading truncate">Snowpack Depth</span>
+            <Layers className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
-          <div>
+          <div className="my-1">
             <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {snowPack} <span className="text-sm font-normal text-earth-600">cm</span>
+              {snowPack} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">cm</span>
             </div>
-            <div className="text-xs text-earth-700 font-medium mt-1">
-              {snowPack <= 0 ? 'Bare ground at model grid' : snowPack < 30 ? 'Thin / patchy cover' : 'Deep pack — avalanche fuel'}
+            <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
+              {snowPack <= 0 ? 'Bare ground at grid' : snowPack < 30 ? 'Thin / patchy cover' : 'Deep pack — avalanche fuel'}
             </div>
-            <div className="text-xs text-earth-600 font-mono mt-1 font-semibold">hourly snow_depth · live</div>
+          </div>
+          <div className="text-[11px] sm:text-xs text-earth-600 font-mono font-semibold pt-1.5 border-t border-earth-100/90 truncate">
+            hourly snow_depth · live
           </div>
         </div>
 
-      </div>
-
-      <div className="text-xs sm:text-sm text-earth-700 font-mono bg-white/80 border border-earth-200/90 rounded-xl px-4 py-2.5 leading-relaxed">
-        Live feed: <strong>{source}</strong> · Observation: {obsTime ?? '—'}
-        {modelElev != null ? ` · Model grid: ${modelElev}m (Village DEM: ${elevation}m)` : ` · Village DEM: ${elevation}m`}
-        . High-relief white contours represent static glaciated terrain, not transient surface snow.
       </div>
 
       {/* Terrain DEM Parameters Row */}
