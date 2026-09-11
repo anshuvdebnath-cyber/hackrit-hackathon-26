@@ -126,21 +126,6 @@ export default function App() {
                         villageName={selectedVillage.name}
                         riskLevel={selectedVillage.avalancheRisk?.level || 'Moderate'}
                       />
-
-                      {/* Quick Info Box for Operators & Officials */}
-                      <div className="bg-earth-100/90 rounded-2xl p-6 border border-earth-300/70 text-xs space-y-3 shadow-sm">
-                        <div className="flex items-center gap-2.5 font-bold text-earth-800 text-sm">
-                          <Mountain className="w-4 h-4 text-terracotta-600" />
-                          <span>Panchayat & Expedition Dispatch Protocol</span>
-                        </div>
-                        <p className="text-earth-700 leading-relaxed text-xs">
-                          For sector <strong>{selectedVillage.fullName || selectedVillage.name}</strong>, risk is evaluated through real-time physical shear equilibrium modeling. Top 3 factors represent primary triggers observed across historical HiAVAL avalanche catalogs.
-                        </p>
-                        <div className="pt-3 border-t border-earth-200/80 flex items-center justify-between text-xs text-earth-600">
-                          <span>Data link: {dataSource === 'backend' ? 'Live Express API' : 'Cached Local Node'}</span>
-                          <span className="font-semibold text-terracotta-700">Zone: Western Himalayas</span>
-                        </div>
-                      </div>
                     </div>
 
                   </section>
