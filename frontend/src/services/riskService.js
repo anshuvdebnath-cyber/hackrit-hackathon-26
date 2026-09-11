@@ -15,13 +15,25 @@ export const getRiskBgClass = (level) => {
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
+function safeTimeout(ms = 6000) {
+  try {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      return AbortSignal.timeout(ms);
+    }
+  } catch (_e) {}
+  return undefined;
+}
+
 /**
  * Universal fetch helper that tries relative proxy first, then localhost:5000 directly
  */
 async function tryFetchGet(endpoint, timeoutMs = 6000) {
+  const signal = safeTimeout(timeoutMs);
+  const options = signal ? { signal } : {};
+
   // 1. Try relative path (works with Vite /api proxy)
   try {
-    const res = await fetch(`/api${endpoint}`, { signal: AbortSignal.timeout(timeoutMs) });
+    const res = await fetch(`/api${endpoint}`, options);
     if (res.ok) {
       return await res.json();
     }
@@ -31,7 +43,7 @@ async function tryFetchGet(endpoint, timeoutMs = 6000) {
 
   // 2. Try explicit http://localhost:5000
   try {
-    const res = await fetch(`http://localhost:5000/api${endpoint}`, { signal: AbortSignal.timeout(timeoutMs) });
+    const res = await fetch(`http://localhost:5000/api${endpoint}`, options);
     if (res.ok) {
       return await res.json();
     }
@@ -43,11 +55,12 @@ async function tryFetchGet(endpoint, timeoutMs = 6000) {
 }
 
 async function tryFetchPost(endpoint, body, timeoutMs = 6000) {
+  const signal = safeTimeout(timeoutMs);
   const options = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs)
+    ...(signal ? { signal } : {})
   };
 
   try {
@@ -120,7 +133,8 @@ async function fetchDirectOpenMeteoBatch(villages) {
     const lngs = villages.map(v => v.lng).join(',');
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&${LIVE_PARAMS}`;
     
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const signal = safeTimeout(8000);
+    const res = await fetch(url, signal ? { signal } : {});
     if (res.ok) {
       const data = await res.json();
       const results = Array.isArray(data) ? data : [data];
@@ -213,7 +227,8 @@ export async function fetchVillageRisk(villageId, forceRefresh = false) {
   const village = VILLAGES.find(v => v.id === villageId) || VILLAGES[0];
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${village.lat}&longitude=${village.lng}&${LIVE_PARAMS}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const signal = safeTimeout(5000);
+    const res = await fetch(url, signal ? { signal } : {});
     if (res.ok) {
       const json = await res.json();
       const p = parseLiveOpenMeteo(json);
@@ -412,7 +427,8 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
   console.log(`[TerraWatch] Fetching live satellite telemetry directly for (${lat}, ${lng})...`);
   try {
     const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&${LIVE_PARAMS}`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const signal = safeTimeout(5000);
+    const res = await fetch(url, signal ? { signal } : {});
     if (res.ok) {
       const json = await res.json();
       const p = parseLiveOpenMeteo(json);
@@ -421,7 +437,8 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
       try {
         const d = 0.0045;
         const eUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lat},${parseFloat(lat) + d},${lat}&longitude=${lng},${lng},${parseFloat(lng) + d}`;
-        const eRes = await fetch(eUrl, { signal: AbortSignal.timeout(4000) });
+        const eSignal = safeTimeout(4000);
+        const eRes = await fetch(eUrl, eSignal ? { signal: eSignal } : {});
         if (eRes.ok) {
           const eJson = await eRes.json();
           const ev = eJson.elevation;
