@@ -20,9 +20,19 @@ This folder contains the **FastAPI ML Microservice** for Teammates A & B (Your b
 
 ---
 
-## 🧠 How to Plug In Your Trained XGBoost Model
+## 🧠 Integrated Avalanche Model
 
-1. **Train your model** on the 5 features in this exact order:
+The service loads `xgb_avalanche_final.json` automatically. It expects these
+features in this order: `temperature_C`, `dewpoint_C`, `precip_mm`,
+`snowfall_mm`, `snow_depth_mm`, `pressure_hPa`, `wind_speed`,
+`relative_humidity`, and `month`.
+
+The existing five-field sandbox request remains supported. Missing weather
+fields use documented defaults until live telemetry supplies them.
+
+## 🧠 Adding a Different Model
+
+1. **Train your model** on the 9 features in this exact order:
    - `snow_depth` (cm)
    - `slope_angle` (degrees)
    - `wind_speed` (km/h)

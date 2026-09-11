@@ -7,13 +7,35 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
  * If the ML service is not yet running, it automatically uses the calibrated
  * physical shear-stress heuristic so development and the frontend never break.
  */
-async function predictRisk({ snow_depth, slope_angle, wind_speed, temperature, rainfall }) {
+async function predictRisk({
+  snow_depth,
+  slope_angle,
+  wind_speed,
+  temperature,
+  rainfall,
+  temperature_C,
+  dewpoint_C,
+  precip_mm,
+  snowfall_mm,
+  snow_depth_mm,
+  pressure_hPa,
+  relative_humidity,
+  month
+}) {
   const payload = {
     snow_depth: parseFloat(snow_depth),
     slope_angle: parseFloat(slope_angle),
     wind_speed: parseFloat(wind_speed),
     temperature: parseFloat(temperature),
-    rainfall: parseFloat(rainfall)
+    rainfall: parseFloat(rainfall),
+    temperature_C: parseFloat(temperature_C ?? temperature),
+    dewpoint_C: parseFloat(dewpoint_C ?? (temperature - 2)),
+    precip_mm: parseFloat(precip_mm ?? rainfall),
+    snowfall_mm: parseFloat(snowfall_mm ?? 0),
+    snow_depth_mm: parseFloat(snow_depth_mm ?? (snow_depth * 10)),
+    pressure_hPa: parseFloat(pressure_hPa ?? 700),
+    relative_humidity: parseFloat(relative_humidity ?? 70),
+    month: Number.isFinite(Number(month)) ? Number(month) : new Date().getMonth() + 1
   };
 
   try {
@@ -50,13 +72,13 @@ async function predictRisk({ snow_depth, slope_angle, wind_speed, temperature, r
       };
     }
 
-    const slopeScore = slope_angle >= 25 && slope_angle <= 45 
-      ? Math.max(30, 95 - Math.abs(slope_angle - 38) * 4.5) 
+    const slopeScore = slope_angle >= 25 && slope_angle <= 45
+      ? Math.max(30, 95 - Math.abs(slope_angle - 38) * 4.5)
       : 25;
     const snowScore = Math.min(100, (snow_depth / 60) * 85);
     const windScore = Math.min(100, (wind_speed / 40) * 85);
-    const tempScore = temperature > 0 
-      ? Math.min(100, 50 + temperature * 6.5) 
+    const tempScore = temperature > 0
+      ? Math.min(100, 50 + temperature * 6.5)
       : Math.min(85, 45 + Math.abs(temperature + 8) * 3);
     const rainScore = rainfall > 0 ? Math.min(100, 35 + rainfall * 2.5 + (snow_depth > 10 ? 20 : 0)) : 0;
 
