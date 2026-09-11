@@ -14,44 +14,8 @@ export default function Header({
 }) {
   return (
     <header className="bg-earth-900 text-earth-50 border-b border-earth-800 sticky top-0 z-[100] shadow-md">
-      {/* Top Banner with Himalayan Monitoring Status */}
-      <div className="bg-earth-950 px-4 py-1.5 border-b border-earth-800/60 text-xs flex flex-wrap items-center justify-between gap-2 text-earth-300">
-        <div className="flex items-center space-x-3">
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-moss-500/20 text-moss-300 font-medium border border-moss-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-moss-400 animate-pulse"></span>
-            Telemetry Online
-          </span>
-          <span className="hidden sm:inline text-earth-400">|</span>
-          <span className="hidden sm:inline">HiAVAL Historical Records Synced</span>
-          <span className="hidden md:inline text-earth-400">|</span>
-          <span className="hidden md:inline">Open-Meteo Satellite Feed Connected</span>
-        </div>
-
-        <div className="flex items-center space-x-3 text-xs">
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-earth-800 hover:bg-earth-700 text-terracotta-300 border border-earth-700 font-semibold transition"
-              title="Force immediate live Open-Meteo satellite feed sync"
-            >
-              <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-terracotta-400' : 'text-moss-400'}`} />
-              <span>{isRefreshing ? 'Fetching Satellite...' : 'Live Satellite Sync'}</span>
-            </button>
-          )}
-          {highRiskCount > 0 ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-clay-500/30 text-clay-200 border border-clay-500/50 font-semibold">
-              <ShieldAlert className="w-3.5 h-3.5 text-clay-300" />
-              {highRiskCount} Alert{highRiskCount > 1 ? 's' : ''}
-            </span>
-          ) : (
-            <span className="text-moss-400">All sectors normal</span>
-          )}
-        </div>
-      </div>
-
       {/* Main Header Nav */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           
           {/* Logo & Brand Identity */}
@@ -67,6 +31,10 @@ export default function Header({
                 <span className="text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded bg-earth-800 text-terracotta-300 border border-earth-700">
                   Himalayas
                 </span>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-moss-500/20 text-moss-300 text-[11px] font-medium border border-moss-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-moss-400 animate-pulse"></span>
+                  Live Telemetry
+                </span>
               </div>
               <p className="text-xs text-earth-400">
                 Real-Time Avalanche & Flood Early Warning Dashboard
@@ -74,8 +42,8 @@ export default function Header({
             </div>
           </div>
 
-          {/* Controls: Village Quick Selector & Nav Tabs */}
-          <div className="flex flex-wrap items-center gap-3">
+          {/* Controls: Village Quick Selector, Nav Tabs, & Live Satellite Sync */}
+          <div className="flex flex-wrap items-center gap-2.5">
             
             {/* Quick Village Dropdown */}
             <div className="relative">
@@ -84,11 +52,11 @@ export default function Header({
                 id="village-select"
                 value={selectedVillageId}
                 onChange={(e) => onSelectVillage(e.target.value)}
-                className="bg-earth-800 text-earth-100 text-sm rounded-lg px-3.5 py-2 border border-earth-700 focus:outline-none focus:ring-2 focus:ring-terracotta-500 shadow-inner font-medium cursor-pointer"
+                className="bg-earth-800 text-earth-100 text-xs sm:text-sm rounded-lg px-3 py-2 border border-earth-700 focus:outline-none focus:ring-2 focus:ring-terracotta-500 shadow-inner font-medium cursor-pointer"
               >
                 {villages.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.name} ({v.region}) � {v.avalancheRisk?.level || 'Active'}
+                    {v.name} ({v.region}) · {v.avalancheRisk?.level || 'Active'}
                   </option>
                 ))}
               </select>
@@ -117,7 +85,7 @@ export default function Header({
                 }`}
               >
                 <Table className="w-3.5 h-3.5" />
-                <span>Multi-Village View</span>
+                <span>Multi-Village</span>
               </button>
 
               <button
@@ -129,9 +97,30 @@ export default function Header({
                 }`}
               >
                 <Sliders className="w-3.5 h-3.5" />
-                <span>What-If Sandbox</span>
+                <span>What-If</span>
               </button>
             </nav>
+
+            {/* Live Satellite Sync Action Button */}
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-earth-800 hover:bg-earth-700 text-terracotta-300 hover:text-terracotta-200 border border-earth-700 hover:border-earth-600 text-xs font-semibold transition shadow-sm disabled:opacity-60 cursor-pointer"
+                title="Force immediate live Open-Meteo satellite feed sync"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-terracotta-400' : 'text-moss-400'}`} />
+                <span>{isRefreshing ? 'Syncing...' : 'Live Satellite Sync'}</span>
+              </button>
+            )}
+
+            {/* Emergency Alerts Badge if active */}
+            {highRiskCount > 0 && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-clay-500/20 text-clay-200 border border-clay-500/40 text-xs font-bold">
+                <ShieldAlert className="w-3.5 h-3.5 text-clay-300" />
+                <span>{highRiskCount} Alert{highRiskCount > 1 ? 's' : ''}</span>
+              </span>
+            )}
 
           </div>
 
