@@ -118,29 +118,22 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   };
 
   return (
-    <div className="bg-earth-50 rounded-2xl p-6 sm:p-7 border border-earth-200 shadow-sm space-y-6">
+    <div className="bg-earth-50 rounded-2xl p-6 sm:p-7 border border-earth-200 shadow-sm space-y-6 h-full flex flex-col justify-between">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 border-b border-earth-200 pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Brain className="w-4 h-4 text-terracotta-600" />
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700 font-heading">
-              Model Explainability
-            </span>
-          </div>
-          <h3 className="font-heading text-xl sm:text-2xl lg:text-3xl font-black text-earth-950 mt-1">
-            Key Contributing Hazard Drivers
-          </h3>
-          <p className="text-xs sm:text-sm text-earth-700 font-medium mt-0.5">
-            Feature-importance decomposition from the predictive model for {villageName}
-          </p>
+      <div className="border-b border-earth-200 pb-4">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-terracotta-600" />
+          <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-terracotta-700 font-heading">
+            Model Explainability
+          </span>
         </div>
-
-        <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold px-3.5 py-1.5 rounded-full bg-earth-200/90 text-earth-900 border border-earth-300/80 shadow-sm flex-shrink-0">
-          <Sparkles className="w-4 h-4 text-terracotta-600" />
-          Explainable AI
-        </span>
+        <h3 className="font-heading text-xl sm:text-2xl lg:text-3xl font-black text-earth-950 mt-1">
+          Key Contributing Hazard Drivers
+        </h3>
+        <p className="text-xs sm:text-sm text-earth-700 font-medium mt-0.5">
+          Feature-importance decomposition from the predictive model for {villageName}
+        </p>
       </div>
 
       {/* Enlarged Chart.js Container */}

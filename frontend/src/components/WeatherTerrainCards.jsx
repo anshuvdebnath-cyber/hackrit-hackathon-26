@@ -11,6 +11,7 @@ import {
   AlertCircle,
   ShieldAlert
 } from 'lucide-react';
+import { useCountUp } from '../hooks/useCountUp';
 
 export default function WeatherTerrainCards({ village }) {
   if (!village) return null;
@@ -31,6 +32,13 @@ export default function WeatherTerrainCards({ village }) {
   const elevation = village.elevation ?? 0;
   const aspect = village.aspect ?? 'North';
   const hiAval = village.hiAvalEvents ?? 12;
+
+  // Animated numbers from 0 to target
+  const animatedTemp = useCountUp(temp, 850, 1, village.id);
+  const animatedWind = useCountUp(wind, 850, 1, village.id);
+  const animatedSnow = useCountUp(snowFall24h, 850, 0, village.id);
+  const animatedRain = useCountUp(rain24h, 850, 1, village.id);
+  const animatedSnowPack = useCountUp(snowPack, 850, 0, village.id);
 
   // Physical classification helpers
   const isCriticalSlope = slope >= 30 && slope <= 45;
@@ -66,8 +74,8 @@ export default function WeatherTerrainCards({ village }) {
             <Thermometer className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
           <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {temp > 0 ? `+${temp}` : temp}°C
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950 tabular-nums">
+              {Number(animatedTemp) > 0 ? `+${animatedTemp}` : animatedTemp}°C
             </div>
             <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {temp <= 0 ? 'Sub-zero freeze' : 'Above freezing; thaw risk'}
@@ -85,8 +93,8 @@ export default function WeatherTerrainCards({ village }) {
             <Wind className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
           <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {wind} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">km/h</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950 tabular-nums">
+              {animatedWind} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">km/h</span>
             </div>
             <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {isHighWind ? 'Active crest wind-slab drift' : 'Light to moderate breeze'}
@@ -104,8 +112,8 @@ export default function WeatherTerrainCards({ village }) {
             <CloudSnow className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
           <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {snowFall24h} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">cm</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950 tabular-nums">
+              {animatedSnow} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">cm</span>
             </div>
             <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {isSnowLoading ? 'Heavy slab loading' : 'Moderate or no fresh snow'}
@@ -123,8 +131,8 @@ export default function WeatherTerrainCards({ village }) {
             <CloudRain className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
           <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {rain24h} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">mm</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950 tabular-nums">
+              {animatedRain} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">mm</span>
             </div>
             <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {rain24h > 10 ? 'Heavy runoff / flash flood' : 'Dry precipitation profile'}
@@ -142,8 +150,8 @@ export default function WeatherTerrainCards({ village }) {
             <Layers className="w-4 h-4 text-terracotta-600 flex-shrink-0" />
           </div>
           <div className="my-1">
-            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950">
-              {snowPack} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">cm</span>
+            <div className="text-2xl sm:text-3xl font-heading font-extrabold text-earth-950 tabular-nums">
+              {animatedSnowPack} <span className="text-xs sm:text-sm font-normal text-earth-600 font-sans">cm</span>
             </div>
             <div className="text-xs text-earth-700 font-medium h-9 flex items-center leading-snug">
               {snowPack <= 0 ? 'Bare ground at grid' : snowPack < 30 ? 'Thin / patchy cover' : 'Deep pack — avalanche fuel'}

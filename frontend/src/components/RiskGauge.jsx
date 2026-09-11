@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldAlert, AlertTriangle, CheckCircle, Droplets, Mountain, Compass, MapPin } from 'lucide-react';
 import { getRiskColor } from '../services/riskService';
+import { useCountUp } from '../hooks/useCountUp';
 
 export default function RiskGauge({ village }) {
   if (!village) return null;
@@ -9,6 +10,9 @@ export default function RiskGauge({ village }) {
   const avalLevel = village.avalancheRisk?.level ?? 'Low';
   const floodScore = village.floodRisk?.score ?? 0;
   const floodLevel = village.floodRisk?.level ?? 'Low';
+
+  const animatedAvalScore = useCountUp(avalScore, 900, avalScore % 1 !== 0 ? 1 : 0, village.id);
+  const animatedFloodScore = useCountUp(floodScore, 900, 0, village.id);
 
   const avalColor = getRiskColor(avalLevel);
   const floodColor = getRiskColor(floodLevel);
@@ -107,8 +111,8 @@ export default function RiskGauge({ village }) {
 
             {/* Score in Center */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
-              <span className="text-4xl sm:text-[44px] font-black font-heading text-earth-950 tracking-tight leading-none">
-                {avalScore}
+              <span className="text-4xl sm:text-[44px] font-black font-heading text-earth-950 tracking-tight leading-none tabular-nums">
+                {animatedAvalScore}
               </span>
               <span className="text-xs sm:text-sm uppercase font-bold text-earth-600 mt-1 font-mono tracking-wider">
                 / 100
@@ -162,8 +166,8 @@ export default function RiskGauge({ village }) {
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
-              <span className="text-4xl sm:text-[44px] font-black font-heading text-earth-950 tracking-tight leading-none">
-                {floodScore}
+              <span className="text-4xl sm:text-[44px] font-black font-heading text-earth-950 tracking-tight leading-none tabular-nums">
+                {animatedFloodScore}
               </span>
               <span className="text-xs sm:text-sm uppercase font-bold text-earth-600 mt-1 font-mono tracking-wider">
                 / 100

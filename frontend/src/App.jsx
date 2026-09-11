@@ -111,16 +111,16 @@ export default function App() {
 
                 {/* 2. Detailed Sector Telemetry & Explainability */}
                 {selectedVillage && (
-                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
                     
                     {/* Left Column: Risk Gauge & Environmental Telemetry (7 cols) */}
-                    <div className="lg:col-span-7 space-y-8">
+                    <div className="lg:col-span-7 space-y-8 flex flex-col justify-between">
                       <RiskGauge village={selectedVillage} />
                       <WeatherTerrainCards village={selectedVillage} />
                     </div>
 
                     {/* Right Column: Model Explainability Chart.js (5 cols) */}
-                    <div className="lg:col-span-5 space-y-8">
+                    <div className="lg:col-span-5 flex flex-col h-full">
                       <FeatureImportanceChart
                         factors={selectedVillage.topFactors || []}
                         villageName={selectedVillage.name}
