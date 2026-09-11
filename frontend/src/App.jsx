@@ -86,8 +86,8 @@ export default function App() {
         onRefresh={handleRefresh}
       />
 
-      {/* Main Content Area with generous top distance from floating navbar */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-12 space-y-8">
+      {/* Main Content Area with generous width and spacing */}
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-8 pt-6 sm:pt-8 pb-12 space-y-8">
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 space-y-4">
@@ -98,7 +98,7 @@ export default function App() {
           <>
             {/* TAB 1: Live Risk Map & Village Overview */}
             {activeTab === 'map' && (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 
                 {/* 1. Leaflet Interactive Map */}
                 <section>
@@ -111,16 +111,16 @@ export default function App() {
 
                 {/* 2. Detailed Sector Telemetry & Explainability */}
                 {selectedVillage && (
-                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     {/* Left Column: Risk Gauge & Environmental Telemetry (7 cols) */}
-                    <div className="lg:col-span-7 space-y-6">
+                    <div className="lg:col-span-7 space-y-8">
                       <RiskGauge village={selectedVillage} />
                       <WeatherTerrainCards village={selectedVillage} />
                     </div>
 
                     {/* Right Column: Model Explainability Chart.js (5 cols) */}
-                    <div className="lg:col-span-5 space-y-6">
+                    <div className="lg:col-span-5 space-y-8">
                       <FeatureImportanceChart
                         factors={selectedVillage.topFactors || []}
                         villageName={selectedVillage.name}
@@ -128,15 +128,15 @@ export default function App() {
                       />
 
                       {/* Quick Info Box for Operators & Officials */}
-                      <div className="bg-earth-100/90 rounded-2xl p-5 border border-earth-300/70 text-xs space-y-3">
-                        <div className="flex items-center gap-2 font-bold text-earth-800">
+                      <div className="bg-earth-100/90 rounded-2xl p-6 border border-earth-300/70 text-xs space-y-3 shadow-sm">
+                        <div className="flex items-center gap-2.5 font-bold text-earth-800 text-sm">
                           <Mountain className="w-4 h-4 text-terracotta-600" />
                           <span>Panchayat & Expedition Dispatch Protocol</span>
                         </div>
-                        <p className="text-earth-700 leading-relaxed">
+                        <p className="text-earth-700 leading-relaxed text-xs">
                           For sector <strong>{selectedVillage.fullName || selectedVillage.name}</strong>, risk is evaluated through real-time physical shear equilibrium modeling. Top 3 factors represent primary triggers observed across historical HiAVAL avalanche catalogs.
                         </p>
-                        <div className="pt-2 border-t border-earth-200/80 flex items-center justify-between text-[11px] text-earth-600">
+                        <div className="pt-3 border-t border-earth-200/80 flex items-center justify-between text-xs text-earth-600">
                           <span>Data link: {dataSource === 'backend' ? 'Live Express API' : 'Cached Local Node'}</span>
                           <span className="font-semibold text-terracotta-700">Zone: Western Himalayas</span>
                         </div>
@@ -170,27 +170,27 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-earth-900 text-earth-400 text-xs py-6 border-t border-earth-800 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-lg bg-terracotta-500/20 text-terracotta-400 flex items-center justify-center font-bold">
-              ??
+      <footer className="bg-earth-900 text-earth-400 text-xs py-8 border-t border-earth-800 mt-12">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-7 h-7 rounded-lg bg-terracotta-500/20 text-terracotta-400 flex items-center justify-center">
+              <Mountain className="w-4 h-4" />
             </div>
-            <span className="font-serif font-bold text-earth-200">
-              Terra Watch � Himalayan Early Warning System
+            <span className="font-serif font-bold text-earth-200 text-sm">
+              Terra Watch · Himalayan Early Warning System
             </span>
           </div>
 
-          <div className="flex items-center space-x-6 text-earth-400 text-[11px]">
+          <div className="flex items-center space-x-6 text-earth-400 text-xs">
             <span>HiAVAL Avalanche Inventory</span>
-            <span>�</span>
+            <span>·</span>
             <span>ALOS PALSAR 12.5m DEM</span>
-            <span>�</span>
-            <span>OpenWeatherMap API</span>
+            <span>·</span>
+            <span>Open-Meteo Satellite Feed</span>
           </div>
 
-          <div className="text-[11px] text-earth-500">
-            Organic Natural Design System � Hackathon 2026
+          <div className="text-xs text-earth-500">
+            Organic Natural Design System · Hackathon 2026
           </div>
         </div>
       </footer>
