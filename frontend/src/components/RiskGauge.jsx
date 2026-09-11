@@ -1,9 +1,9 @@
 import React from 'react';
-import { ShieldAlert, AlertTriangle, CheckCircle, Droplets, Mountain, Compass, MapPin } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Droplets, Mountain, Compass, MapPin, Sparkles, Cpu } from 'lucide-react';
 import { getRiskColor } from '../services/riskService';
 import { useCountUp } from '../hooks/useCountUp';
 
-export default function RiskGauge({ village }) {
+export default function RiskGauge({ village, modelStatus }) {
   if (!village) return null;
 
   const avalScore = village.avalancheRisk?.score ?? 0;
@@ -50,13 +50,15 @@ export default function RiskGauge({ village }) {
 
   return (
     <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-4">
-       {/* Header Info for Selected Village */}
+       {/* Header Info for Selected Village / Custom Coordinate */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-earth-200 gap-2">
         <div>
           <div className="flex items-center gap-1.5">
             <MapPin className="w-3.5 h-3.5 text-terracotta-600" />
             <span className="text-xs font-bold text-terracotta-700 tracking-wider uppercase font-heading">
-              {village.region} · {village.district} District
+              {village.isCustom 
+                ? `Custom GPS · ${village.lat?.toFixed(4)}°N, ${village.lng?.toFixed(4)}°E` 
+                : `${village.region} · ${village.district} District`}
             </span>
           </div>
           <h2 className="font-heading text-xl sm:text-2xl font-bold text-earth-950 tracking-tight mt-0.5">
@@ -65,6 +67,12 @@ export default function RiskGauge({ village }) {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
+          {village.isCustom && (
+            <span className="px-2.5 py-1 rounded-full text-xs bg-terracotta-100 text-terracotta-800 font-bold border border-terracotta-300 font-mono shadow-sm flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-terracotta-600" />
+              Custom Map Point
+            </span>
+          )}
           <span className="px-3 py-1 rounded-full text-xs font-bold border shadow-sm font-heading" style={{
             backgroundColor: `${avalColor}15`,
             color: avalColor,
@@ -114,16 +122,21 @@ export default function RiskGauge({ village }) {
               <span className="text-2xl sm:text-3xl font-extrabold font-heading text-earth-950 leading-none tabular-nums">
                 {animatedAvalScore}
               </span>
-              <span className="text-[10px] sm:text-xs uppercase font-bold text-earth-600 mt-0.5 font-mono">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-earth-600 font-mono mt-0.5">
                 / 100
               </span>
             </div>
           </div>
 
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-earth-700 font-heading mb-0.5">
-              <Mountain className="w-3.5 h-3.5 text-terracotta-600" />
-              <span>AVALANCHE RISK</span>
+            <div className="flex items-center justify-between gap-1 mb-0.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-earth-700 font-heading">
+                <Mountain className="w-3.5 h-3.5 text-terracotta-600" />
+                <span>AVALANCHE RISK</span>
+              </div>
+              <span className="text-[10px] font-mono font-semibold text-earth-600 bg-earth-100 px-1.5 py-0.5 rounded border border-earth-200 truncate" title="Inference model: xgb_avalanche_final.json">
+                xgb_avalanche_final.json
+              </span>
             </div>
             <div className="flex items-baseline gap-2 mb-1">
               <span className="text-lg sm:text-xl font-heading font-extrabold" style={{ color: avalColor }}>
@@ -134,7 +147,7 @@ export default function RiskGauge({ village }) {
               </span>
             </div>
             <p className="text-xs text-earth-700 leading-relaxed font-normal line-clamp-2">
-              {village.statusSummary || 'Evaluation based on fresh snow accumulation, slope shear angle, and crest wind loading.'}
+              {village.explanation || village.statusSummary || 'Evaluation computed directly by trained XGBoost booster from live atmospheric & DEM elevation gradients.'}
             </p>
           </div>
         </div>

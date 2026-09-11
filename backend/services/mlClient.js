@@ -120,4 +120,31 @@ async function predictRisk({
   }
 }
 
-module.exports = { predictRisk };
+/**
+ * Checks connectivity and model health with the FastAPI ML service.
+ */
+async function getModelStatus() {
+  try {
+    const res = await axios.get(`${ML_SERVICE_URL}/health`, { timeout: 2000 });
+    return {
+      connected: true,
+      service: res.data.service || 'FastAPI XGBoost ML Service',
+      modelFile: res.data.model_file || 'xgb_avalanche_final.json',
+      modelLoaded: res.data.model_loaded === true,
+      modelType: res.data.model_type || 'xgb_booster',
+      featuresExpected: res.data.features_expected || [],
+      url: ML_SERVICE_URL
+    };
+  } catch (_e) {
+    return {
+      connected: false,
+      service: 'FastAPI Offline (Fallback Active)',
+      modelFile: 'xgb_avalanche_final.json',
+      modelLoaded: false,
+      url: ML_SERVICE_URL
+    };
+  }
+}
+
+module.exports = { predictRisk, getModelStatus };
+

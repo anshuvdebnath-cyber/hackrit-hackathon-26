@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const VILLAGES = require('../data/villages');
 const { getLiveWeather, fetchBatchWeather, getTerrainSlope } = require('../services/weatherService');
-const { predictRisk } = require('../services/mlClient');
+const { predictRisk, getModelStatus } = require('../services/mlClient');
 const { recordEvaluation, getHistory } = require('../services/historyService');
 
 // Cache to store recent predictions per village (3-minute cache for freshness)
@@ -148,6 +148,15 @@ router.get('/risk/:villageId', async (req, res) => {
     console.error(`Error fetching risk for ${req.params.villageId}:`, error);
     res.status(500).json({ error: 'Failed to evaluate sector risk' });
   }
+});
+
+/**
+ * 2b. GET /api/model-status
+ * Returns connectivity and model health with the FastAPI ML microservice (xgb_avalanche_final.json)
+ */
+router.get('/model-status', async (req, res) => {
+  const status = await getModelStatus();
+  res.json(status);
 });
 
 /**

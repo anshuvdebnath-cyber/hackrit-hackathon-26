@@ -532,3 +532,46 @@ export async function fetchHistory(villageId = null) {
   const data = await tryFetchGet(query, 4000);
   return data || [];
 }
+
+/**
+ * Fetch ML Model Status from FastAPI Microservice (direct or via backend)
+ */
+export async function fetchModelStatus() {
+  try {
+    const res = await fetch('http://localhost:8000/health', { signal: safeTimeout(2500) });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        online: true,
+        modelLoaded: data.model_loaded === true,
+        modelFile: data.model_file || 'xgb_avalanche_final.json',
+        modelType: data.model_type || 'xgb_booster',
+        service: data.service || 'FastAPI XGBoost ML Service',
+        featuresExpected: data.features_expected || [],
+        url: 'http://localhost:8000'
+      };
+    }
+  } catch (_e) {}
+
+  const backendStatus = await tryFetchGet('/model-status', 2500);
+  if (backendStatus) {
+    return {
+      online: backendStatus.connected === true,
+      modelLoaded: backendStatus.modelLoaded === true,
+      modelFile: backendStatus.modelFile || 'xgb_avalanche_final.json',
+      modelType: backendStatus.modelType || 'xgb_booster',
+      service: backendStatus.service || 'FastAPI XGBoost Service',
+      featuresExpected: backendStatus.featuresExpected || [],
+      url: backendStatus.url || 'http://localhost:8000'
+    };
+  }
+
+  return {
+    online: false,
+    modelLoaded: false,
+    modelFile: 'xgb_avalanche_final.json',
+    service: 'Offline (Heuristic Fallback)',
+    url: 'http://localhost:8000'
+  };
+}
+

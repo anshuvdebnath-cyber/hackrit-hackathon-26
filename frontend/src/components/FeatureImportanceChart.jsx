@@ -20,7 +20,7 @@ ChartJS.register(
   Legend
 );
 
-export default function FeatureImportanceChart({ factors = [], villageName = 'Village', riskLevel = 'Moderate' }) {
+export default function FeatureImportanceChart({ factors = [], villageName = 'Village', riskLevel = 'Moderate', modelStatus }) {
   // Sort factors descending
   const sortedFactors = [...factors].sort((a, b) => b.importance - a.importance);
 
@@ -98,22 +98,28 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   // Plain-English physical interpretation helper
   const getFactorExplanation = (factorName, index) => {
     const nameLower = factorName.toLowerCase();
-    if (nameLower.includes('snow')) {
-      return 'Fresh snowfall rate creates tensile stress on older crust layers, escalating slab release propensity.';
+    if (nameLower.includes('slope')) {
+      return 'Terrain angle controls gravitational shear. Slopes 30°-45° are in the primary slab release threshold.';
+    }
+    if (nameLower.includes('snow') && !nameLower.includes('fall')) {
+      return 'Depth and density of base snowpack. Deeper snowpack exerts sustained downward shear pressure.';
+    }
+    if (nameLower.includes('fall') || nameLower.includes('precip')) {
+      return 'Recent accumulation rapidly overburdens weak internal layers before consolidation can occur.';
     }
     if (nameLower.includes('wind')) {
-      return 'Ridge crest winds actively strip windward slopes and pack fragile wind-slabs into lee couloirs.';
+      return 'Ridge wind redistributes surface crystals onto leeward slopes, creating cohesive, fragile wind slabs.';
     }
-    if (nameLower.includes('slope')) {
-      return 'Slopes between 30° and 45° retain maximum snowpack while exceeding critical gravitational shear angles.';
+    if (nameLower.includes('temp')) {
+      return 'Temperature swings promote slab faceting or thaw lubrication, weakening interfacial bonds.';
     }
-    if (nameLower.includes('rain')) {
-      return 'Rainfall introduces liquid water into the snowpack, destroying ice grains and causing wet avalanches / GLOFs.';
+    if (nameLower.includes('dew')) {
+      return 'Near-surface dewpoint condensation accelerates facet formation and internal slab shear weakness.';
     }
-    if (nameLower.includes('temperature')) {
-      return 'Thermal fluctuation induces shear-plane metamorphic faceting and thermal-shock instabilities.';
+    if (nameLower.includes('pressure')) {
+      return 'Barometric gradients correlate with frontal passage, storm intensity, and gust velocity.';
     }
-    return 'Secondary environmental trigger contributing to overall slope destabilization.';
+    return `Physical driver ranked #${index + 1} by the XGBoost TreeSHAP attributions.`;
   };
 
   return (
@@ -121,17 +127,22 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
       
       {/* Header */}
       <div className="border-b border-earth-200 pb-3">
-        <div className="flex items-center gap-1.5">
-          <Brain className="w-3.5 h-3.5 text-terracotta-600" />
-          <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700 font-heading">
-            Model Explainability
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <Brain className="w-3.5 h-3.5 text-terracotta-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700 font-heading">
+              Model Explainability (TreeSHAP)
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-earth-200/90 text-earth-800 border border-earth-300/80 shadow-xs">
+            xgb_avalanche_final.json
           </span>
         </div>
         <h3 className="font-heading text-lg sm:text-xl font-bold text-earth-900 mt-0.5">
           Key Contributing Hazard Drivers
         </h3>
         <p className="text-xs text-earth-700 font-medium">
-          Feature-importance decomposition from the predictive model for {villageName}
+          SHAP feature-attribution decomposition from the XGBoost model for {villageName}
         </p>
       </div>
 

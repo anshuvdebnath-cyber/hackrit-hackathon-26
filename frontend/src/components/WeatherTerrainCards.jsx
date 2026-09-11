@@ -9,11 +9,13 @@ import {
   Layers,
   History,
   AlertCircle,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles,
+  Cpu
 } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
 
-export default function WeatherTerrainCards({ village }) {
+export default function WeatherTerrainCards({ village, modelStatus }) {
   if (!village) return null;
 
   const weather = village.weather || {};
@@ -57,6 +59,18 @@ export default function WeatherTerrainCards({ village }) {
           <h3 className="font-heading text-lg sm:text-xl font-bold text-earth-900 mt-0.5">
             Meteorological & DEM Parameters
           </h3>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-[11px] font-mono font-semibold text-earth-700 bg-white px-2 py-0.5 rounded border border-earth-200/90 shadow-xs inline-flex items-center gap-1">
+              <Cpu className="w-3 h-3 text-terracotta-600" />
+              <span>XGBoost Input Vector (9 Atmospheric & DEM Features)</span>
+            </span>
+            {village.isCustom && (
+              <span className="text-[11px] font-mono font-bold text-moss-800 bg-moss-100/90 px-2 py-0.5 rounded border border-moss-300 shadow-xs inline-flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-moss-600" />
+                <span>Custom Point Telemetry</span>
+              </span>
+            )}
+          </div>
         </div>
         <span className="text-xs text-earth-700 font-medium text-left sm:text-right">
           Source: Open-Meteo live
@@ -209,20 +223,20 @@ export default function WeatherTerrainCards({ village }) {
           </div>
         </div>
 
-        {/* Avalanche Release History */}
+        {/* Avalanche Release History / DEM Grid Source */}
         <div className="bg-white p-3.5 rounded-xl border border-earth-200 flex items-center gap-3">
           <div className="w-9 h-9 rounded-lg bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0">
             <ShieldAlert className="w-5 h-5" />
           </div>
           <div>
             <div className="text-[11px] uppercase font-bold tracking-wider text-earth-600">
-              Historical Threat Activity
+              {village.isCustom ? 'DEM Grid Source' : 'Historical Threat Activity'}
             </div>
             <div className="text-lg font-heading font-extrabold text-earth-950">
-              {hiAval} Recorded Events
+              {village.isCustom ? (village.slopeSource || 'Open-Meteo DEM') : `${hiAval} Recorded Events`}
             </div>
             <div className="text-[11px] font-medium text-earth-700">
-              Historical avalanche path validation
+              {village.isCustom ? 'Dynamic satellite elevation grid' : 'Historical avalanche path validation'}
             </div>
           </div>
         </div>

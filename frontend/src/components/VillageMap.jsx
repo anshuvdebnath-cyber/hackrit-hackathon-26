@@ -141,7 +141,7 @@ function MapClickHandler({ onMapClick }) {
 function MapCameraController({ selectedVillage }) {
   const map = useMap();
   useEffect(() => {
-    if (selectedVillage) {
+    if (selectedVillage && !selectedVillage.isCustom) {
       map.flyTo([selectedVillage.lat, selectedVillage.lng], 10, {
         duration: 1.2,
         easeLinearity: 0.25
@@ -151,9 +151,36 @@ function MapCameraController({ selectedVillage }) {
   return null;
 }
 
-export default function VillageMap({ villages, selectedVillageId, onSelect }) {
-  const selectedVillage = villages.find(v => v.id === selectedVillageId) || villages[0];
-  const [customPin, setCustomPin] = useState(null);
+export default function VillageMap({ 
+  villages, 
+  selectedVillageId, 
+  onSelect,
+  onSelectCustom,
+  customLocation,
+  onClearCustom,
+  onEvaluatingCustom
+}) {
+  const selectedVillage = customLocation || villages.find(v => v.id === selectedVillageId) || villages[0];
+  const [customPin, setCustomPin] = useState(customLocation ? {
+    lat: customLocation.lat,
+    lng: customLocation.lng,
+    loading: false,
+    data: customLocation
+  } : null);
+
+  // Sync if cleared externally
+  useEffect(() => {
+    if (!customLocation) {
+      setCustomPin(null);
+    } else if (!customPin || customPin.lat !== customLocation.lat || customPin.lng !== customLocation.lng) {
+      setCustomPin({
+        lat: customLocation.lat,
+        lng: customLocation.lng,
+        loading: false,
+        data: customLocation
+      });
+    }
+  }, [customLocation]);
 
   const handleMapClick = async (lat, lng) => {
     setCustomPin({
@@ -162,6 +189,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
       loading: true,
       data: null
     });
+    onEvaluatingCustom?.({ lat, lng, loading: true });
 
     try {
       const data = await predictCustomCoordinate(lat, lng);
@@ -171,9 +199,41 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
         loading: false,
         data
       });
-    } catch {
+
+      if (data) {
+        const customSector = {
+          id: `custom-${lat.toFixed(4)}-${lng.toFixed(4)}`,
+          name: `Sector [${lat.toFixed(3)}°N, ${lng.toFixed(3)}°E]`,
+          fullName: `Custom Terrain Sector [${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E]`,
+          district: `GPS Sector (${lat >= 0 ? lat.toFixed(3) + '°N' : Math.abs(lat).toFixed(3) + '°S'}, ${lng >= 0 ? lng.toFixed(3) + '°E' : Math.abs(lng).toFixed(3) + '°W'})`,
+          region: 'Dynamic Himalayan DEM Sector',
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          elevation: data.elevation || data.weather?.modelElevation || 2800,
+          slopeAngle: data.slopeAngle || 32,
+          aspect: data.slopeAngle > 30 ? 'North-East Chute' : 'Valley Floor',
+          hiAvalEvents: 0,
+          avalancheRisk: data.avalancheRisk,
+          floodRisk: data.floodRisk,
+          weather: data.weather,
+          topFactors: data.topFactors,
+          explanation: data.explanation,
+          statusSummary: data.explanation || `Evaluated by XGBoost model (xgb_avalanche_final.json) with live satellite and DEM elevation grid.`,
+          source: data.source || 'live-fastapi-xgboost',
+          isCustom: true
+        };
+        onSelectCustom?.(customSector);
+      }
+    } catch (err) {
+      console.error('[TerraWatch] Error predicting coordinate:', err);
       setCustomPin(null);
+      onEvaluatingCustom?.(null);
     }
+  };
+
+  const handleClearPin = () => {
+    setCustomPin(null);
+    onClearCustom?.();
   };
 
   return (
@@ -192,15 +252,21 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
         <span className="text-earth-600">|</span>
         <span className="text-earth-300 text-xs hidden sm:inline-flex items-center gap-1.5 font-medium">
           <Crosshair className="w-3.5 h-3.5 text-terracotta-400" />
-          Click map to evaluate custom coordinates
+          Click anywhere on map to calculate risk
         </span>
         {customPin && (
-          <button
-            onClick={() => setCustomPin(null)}
-            className="ml-1 text-xs bg-earth-800 hover:bg-earth-700 text-terracotta-300 font-semibold px-2.5 py-1 rounded border border-earth-700 transition"
-          >
-            Clear Pin
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-moss-300 hidden md:inline-flex items-center gap-1 bg-earth-800/90 px-2 py-0.5 rounded border border-earth-700">
+              <Sparkles className="w-3 h-3 text-terracotta-400" />
+              <span>Active Pin: {customPin.lat.toFixed(3)}°N, {customPin.lng.toFixed(3)}°E</span>
+            </span>
+            <button
+              onClick={handleClearPin}
+              className="text-xs bg-earth-800 hover:bg-earth-700 text-terracotta-300 hover:text-terracotta-200 font-semibold px-2.5 py-1 rounded border border-earth-700 transition cursor-pointer"
+            >
+              Reset to Villages
+            </button>
+          </div>
         )}
       </div>
 
@@ -331,12 +397,17 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       </p>
                     )}
 
+                    <div className="bg-moss-50 border border-moss-200 text-moss-800 p-2 rounded-lg text-xs font-bold mb-2 text-center flex items-center justify-center gap-1.5 shadow-xs">
+                      <Sparkles className="w-3.5 h-3.5 text-moss-600 flex-shrink-0" />
+                      <span>Loaded into Telemetry Dashboard Below</span>
+                    </div>
+
                     <button
-                      onClick={() => setCustomPin(null)}
+                      onClick={handleClearPin}
                       className="w-full py-1.5 px-3 bg-earth-200 hover:bg-earth-300 text-earth-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Clear Custom Point</span>
+                      <span>Clear Point & Reset to Villages</span>
                     </button>
                   </div>
                 ) : null}
@@ -346,7 +417,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
         )}
 
         {villages.map((v) => {
-          const isSelected = v.id === selectedVillageId;
+          const isSelected = v.id === selectedVillageId && !customPin;
           const level = v.avalancheRisk?.level || 'Low';
           const icon = createVillageIcon(level, isSelected, v.name.split(' ')[0]);
 
@@ -356,7 +427,11 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
               position={[v.lat, v.lng]}
               icon={icon}
               eventHandlers={{
-                click: () => onSelect(v.id),
+                click: () => {
+                  setCustomPin(null);
+                  onClearCustom?.();
+                  onSelect(v.id);
+                },
               }}
             >
               <Popup className="village-leaflet-popup">

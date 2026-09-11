@@ -1,24 +1,30 @@
 import React from 'react';
-import { Mountain, ShieldAlert, Compass, Sliders, Table, RefreshCw, ChevronDown } from 'lucide-react';
+import { Mountain, ShieldAlert, Compass, Sliders, Table, RefreshCw, ChevronDown, Cpu, Sparkles, X } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
   setActiveTab, 
   villages, 
   selectedVillageId, 
+  customLocation,
+  onClearCustom,
   onSelectVillage,
   highRiskCount,
   dataSource = 'backend',
+  modelStatus,
   isRefreshing = false,
   onRefresh
 }) {
+  const isModelConnected = modelStatus?.online ?? true;
+  const modelFile = modelStatus?.modelFile || 'xgb_avalanche_final.json';
+
   return (
     <header className="sticky top-4 sm:top-5 z-[100] w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Floating Island Container - Slim Horizontal Capsule */}
       <div className="bg-earth-900/95 backdrop-blur-xl border border-earth-800/90 shadow-xl shadow-earth-950/25 rounded-full px-4 sm:px-6 py-2 transition-all">
-        <div className="flex items-center justify-between gap-4 w-full">
+        <div className="flex items-center justify-between gap-3 w-full">
           
-          {/* 1. Left: Brand & Live Indicator (Single Line) */}
+          {/* 1. Left: Brand & Model Status (Single Line) */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-terracotta-500 to-clay-600 flex items-center justify-center shadow-md text-white flex-shrink-0">
               <Mountain className="w-5 h-5" />
@@ -30,9 +36,18 @@ export default function Header({
               <span className="text-[11px] sm:text-xs font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-earth-800 text-terracotta-300 border border-earth-700 hidden sm:inline-block">
                 Himalayas
               </span>
-              <span className="hidden md:inline-flex items-center gap-1.5 ml-1 px-2.5 py-0.5 rounded-full bg-moss-500/15 text-moss-300 text-xs font-semibold border border-moss-500/25">
-                <span className="w-1.5 h-1.5 rounded-full bg-moss-400 animate-pulse"></span>
-                Live
+              {/* Active ML Model Badge */}
+              <span 
+                className={`hidden lg:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium border shadow-xs ${
+                  isModelConnected 
+                    ? 'bg-moss-500/15 text-moss-300 border-moss-500/30' 
+                    : 'bg-clay-500/15 text-clay-300 border-clay-500/30'
+                }`}
+                title="Model: xgb_avalanche_final.json running via FastAPI on port 8000"
+              >
+                <Cpu className="w-3.5 h-3.5 text-terracotta-400" />
+                <span>{modelFile}</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${isModelConnected ? 'bg-moss-400 animate-pulse' : 'bg-clay-400'}`}></span>
               </span>
             </div>
           </div>
@@ -76,9 +91,21 @@ export default function Header({
             </button>
           </nav>
 
-          {/* 3. Right: Village Sector Selector & Satellite Sync (Side-by-Side) */}
-          <div className="flex items-center gap-2.5 flex-shrink-0">
+          {/* 3. Right: Village Sector Selector & Satellite Sync */}
+          <div className="flex items-center gap-2 flex-shrink-0">
             
+            {/* Custom Location Indicator & Reset */}
+            {customLocation && (
+              <button
+                onClick={onClearCustom}
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-earth-800 hover:bg-earth-700 text-terracotta-300 text-xs font-semibold border border-earth-700 transition cursor-pointer"
+                title="Clear clicked custom pin and return to predefined villages"
+              >
+                <X className="w-3 h-3 text-terracotta-400" />
+                <span>Reset Pin</span>
+              </button>
+            )}
+
             {/* Styled Sector Dropdown with Chevron */}
             <div className="relative hidden sm:block">
               <label htmlFor="village-select" className="sr-only">Select Village</label>
@@ -88,6 +115,11 @@ export default function Header({
                 onChange={(e) => onSelectVillage(e.target.value)}
                 className="appearance-none bg-earth-950/70 text-earth-100 text-xs sm:text-sm rounded-full pl-3.5 pr-7 py-1.5 border border-earth-800 focus:outline-none focus:ring-2 focus:ring-terracotta-500 shadow-inner font-medium cursor-pointer hover:border-earth-700 transition"
               >
+                {customLocation && (
+                  <option value={customLocation.id} className="bg-earth-900 text-terracotta-300 font-bold py-1">
+                    📍 Custom Point [{customLocation.lat?.toFixed(2)}°, {customLocation.lng?.toFixed(2)}°] (Active)
+                  </option>
+                )}
                 {villages.map((v) => (
                   <option key={v.id} value={v.id} className="bg-earth-900 text-earth-100 py-1">
                     {v.name} · {v.avalancheRisk?.level || 'Active'}
@@ -108,7 +140,7 @@ export default function Header({
                 title="Force immediate live Open-Meteo satellite feed sync"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-terracotta-400' : 'text-moss-400'}`} />
-                <span className="hidden md:inline">{isRefreshing ? 'Syncing...' : 'Live Satellite Sync'}</span>
+                <span className="hidden md:inline">{isRefreshing ? 'Syncing...' : 'Satellite Sync'}</span>
                 <span className="md:hidden">{isRefreshing ? '...' : 'Sync'}</span>
               </button>
             )}
