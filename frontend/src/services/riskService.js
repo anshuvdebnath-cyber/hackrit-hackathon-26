@@ -362,11 +362,6 @@ export function calculateSimulatedRisk({
   const finalAvalancheScore = Math.min(99.0, Math.max(10.0, parseFloat(rawScore.toFixed(1))));
   const avalancheLevel = finalAvalancheScore > 70 ? 'High' : finalAvalancheScore > 40 ? 'Moderate' : 'Low';
 
-  let floodRaw = rainfall * 1.8 + Math.max(0, temperature * 2.2);
-  if (slope_angle > 35) floodRaw *= 1.2;
-  const floodScore = Math.min(98, Math.max(10, parseFloat(floodRaw.toFixed(1))));
-  const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
-
   const rawImportances = [
     { name: 'Snow Load Ratio', val: snowScore * 0.32 },
     { name: 'Slope Angle Criticality', val: slopeScore * 0.28 },
