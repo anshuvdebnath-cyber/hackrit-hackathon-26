@@ -87,11 +87,11 @@ export default function RiskGauge({ village, modelStatus }) {
       </div>
 
       {/* Gauges Row: Avalanche Risk & Flood Risk */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         
         {/* Avalanche Risk Radial Gauge Card */}
-        <div className="bg-white rounded-xl p-4 border border-earth-200/90 shadow-sm flex items-center gap-4">
-          <div className="relative w-24 h-24 sm:w-26 sm:h-26 flex-shrink-0 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-3.5 border border-earth-200/90 shadow-sm flex items-center gap-3.5">
+          <div className="relative w-20 h-20 sm:w-22 sm:h-22 flex-shrink-0 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               {/* Background Track */}
               <circle
@@ -119,7 +119,7 @@ export default function RiskGauge({ village, modelStatus }) {
 
             {/* Score in Center */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
-              <span className="text-2xl sm:text-3xl font-extrabold font-heading text-earth-950 leading-none tabular-nums">
+              <span className="text-xl sm:text-2xl font-extrabold font-heading text-earth-950 leading-none tabular-nums">
                 {animatedAvalScore}
               </span>
               <span className="text-[10px] uppercase font-bold tracking-wider text-earth-600 font-mono mt-0.5">
@@ -138,8 +138,8 @@ export default function RiskGauge({ village, modelStatus }) {
                 xgb_avalanche_final.json
               </span>
             </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-lg sm:text-xl font-heading font-extrabold" style={{ color: avalColor }}>
+            <div className="flex items-baseline gap-2 mb-0.5">
+              <span className="text-base sm:text-lg font-heading font-extrabold" style={{ color: avalColor }}>
                 {avalLevel}
               </span>
               <span className="text-[11px] text-earth-600 font-medium">
@@ -153,8 +153,8 @@ export default function RiskGauge({ village, modelStatus }) {
         </div>
 
         {/* Flood Risk Radial Gauge Card */}
-        <div className="bg-white rounded-xl p-4 border border-earth-200/90 shadow-sm flex items-center gap-4">
-          <div className="relative w-24 h-24 sm:w-26 sm:h-26 flex-shrink-0 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-3.5 border border-earth-200/90 shadow-sm flex items-center gap-3.5">
+          <div className="relative w-20 h-20 sm:w-22 sm:h-22 flex-shrink-0 flex items-center justify-center">
             <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
               <circle
                 cx="50"
@@ -179,10 +179,10 @@ export default function RiskGauge({ village, modelStatus }) {
             </svg>
 
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
-              <span className="text-2xl sm:text-3xl font-extrabold font-heading text-earth-950 leading-none tabular-nums">
+              <span className="text-xl sm:text-2xl font-extrabold font-heading text-earth-950 leading-none tabular-nums">
                 {animatedFloodScore}
               </span>
-              <span className="text-[10px] sm:text-xs uppercase font-bold text-earth-600 mt-0.5 font-mono">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-earth-600 font-mono mt-0.5">
                 / 100
               </span>
             </div>
@@ -193,8 +193,8 @@ export default function RiskGauge({ village, modelStatus }) {
               <Droplets className="w-3.5 h-3.5 text-blue-600" />
               <span>FLASH FLOOD / GLOF RISK</span>
             </div>
-            <div className="flex items-baseline gap-2 mb-1">
-              <span className="text-lg sm:text-xl font-heading font-extrabold" style={{ color: floodColor }}>
+            <div className="flex items-baseline gap-2 mb-0.5">
+              <span className="text-base sm:text-lg font-heading font-extrabold" style={{ color: floodColor }}>
                 {floodLevel}
               </span>
               <span className="text-[11px] text-earth-600 font-medium">
@@ -210,7 +210,7 @@ export default function RiskGauge({ village, modelStatus }) {
       </div>
 
       {/* Official Advisory Banner */}
-      <div className={`p-3.5 rounded-xl border flex items-start gap-3 ${advisory.badgeBg}`}>
+      <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${advisory.badgeBg}`}>
         {avalLevel === 'High' ? (
           <ShieldAlert className="w-5 h-5 flex-shrink-0 text-clay-700 mt-0.5" />
         ) : avalLevel === 'Moderate' ? (

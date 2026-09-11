@@ -45,7 +45,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         borderColor: backgroundColors.map(c => c),
         borderWidth: 1,
         borderRadius: 6,
-        barThickness: 24,
+        barThickness: 18,
       },
     ],
   };
@@ -147,7 +147,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
       </div>
 
       {/* Chart.js Container */}
-      <div className="w-full h-48 sm:h-52 bg-white p-2.5 rounded-xl border border-earth-200/80 shadow-inner">
+      <div className="w-full h-40 sm:h-44 bg-white p-2 rounded-xl border border-earth-200/80 shadow-inner">
         <Bar data={chartData} options={chartOptions} />
       </div>
 
@@ -161,7 +161,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
           {sortedFactors.slice(0, 3).map((factor, idx) => (
             <div
               key={factor.name}
-              className="bg-white p-3 rounded-xl border border-earth-200/70 text-xs flex items-start gap-2.5 shadow-sm hover:border-earth-300 transition-colors"
+              className="bg-white p-2.5 rounded-xl border border-earth-200/70 text-xs flex items-start gap-2 shadow-sm hover:border-earth-300 transition-colors"
             >
               <div
                 className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0 mt-0.5 font-heading"

@@ -117,23 +117,23 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 pb-8 space-y-5">
         
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <div className="w-12 h-12 border-4 border-terracotta-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="font-serif text-lg text-earth-700">Connecting to XGBoost Model & Himalayan Telemetry...</p>
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <div className="w-10 h-10 border-3 border-terracotta-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="font-serif text-base text-earth-700">Connecting to XGBoost Model & Himalayan Telemetry...</p>
           </div>
         ) : (
           <>
             {/* TAB 1: Live Risk Map & Village Overview */}
             {activeTab === 'map' && (
-              <div className="space-y-6">
+              <div className="space-y-5">
                 
                 {/* Evaluating Coordinate Notice Banner */}
                 {isEvaluatingCoordinate && (
-                  <div className="bg-earth-900 text-earth-100 p-3.5 rounded-xl border border-earth-700 shadow-md flex items-center justify-between gap-3 text-xs sm:text-sm animate-pulse">
-                    <div className="flex items-center gap-2.5">
+                  <div className="bg-earth-900 text-earth-100 p-3 rounded-xl border border-earth-700 shadow-md flex items-center justify-between gap-3 text-xs sm:text-sm animate-pulse">
+                    <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 animate-spin text-terracotta-400 flex-shrink-0" />
                       <span className="font-medium">
                         Fetching satellite weather & running <span className="font-mono font-bold text-terracotta-300">xgb_avalanche_final.json</span> for clicked coordinate...
@@ -160,10 +160,10 @@ export default function App() {
 
                 {/* 2. Detailed Sector Telemetry & Explainability */}
                 {selectedVillage && (
-                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
                     
                     {/* Left Column: Risk Gauge & Environmental Telemetry (7 cols) */}
-                    <div className="lg:col-span-7 space-y-6 flex flex-col justify-between">
+                    <div className="lg:col-span-7 space-y-5 flex flex-col justify-between">
                       <RiskGauge village={selectedVillage} modelStatus={modelStatus} />
                       <WeatherTerrainCards village={selectedVillage} modelStatus={modelStatus} />
                     </div>
