@@ -1,6 +1,6 @@
 import React from 'react';
 import { ShieldAlert, AlertTriangle, CheckCircle, Droplets, Mountain, Compass, MapPin } from 'lucide-react';
-import { getRiskColor } from './VillageMap';
+import { getRiskColor } from '../services/riskService';
 
 export default function RiskGauge({ village }) {
   if (!village) return null;

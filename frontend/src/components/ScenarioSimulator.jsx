@@ -1,8 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Sliders, RotateCcw, AlertTriangle, Sparkles, Mountain, Wind, Thermometer, CloudSnow, CloudRain, Cpu } from 'lucide-react';
-import { calculateSimulatedRisk, simulateScenarioApi } from '../services/riskService';
+import { calculateSimulatedRisk, simulateScenarioApi, getRiskColor } from '../services/riskService';
 import FeatureImportanceChart from './FeatureImportanceChart';
-import { getRiskColor } from './VillageMap';
 
 export default function ScenarioSimulator({ baseVillage }) {
   // Initialize sliders with base village or defaults

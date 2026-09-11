@@ -2,20 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { Mountain, AlertTriangle, Wind, Thermometer, CloudSnow, ExternalLink, Navigation, Crosshair, Trash2, Loader2, Sparkles } from 'lucide-react';
-import { predictCustomCoordinate } from '../services/riskService';
-
-// PRD Step 4 Color Mapping
-export const getRiskColor = (level) => {
-  if (level === 'High') return '#A85448';      // Clay
-  if (level === 'Moderate') return '#C18C5D';  // Terracotta
-  return '#5D7052';                           // Moss
-};
-
-export const getRiskBgClass = (level) => {
-  if (level === 'High') return 'bg-clay-50 text-clay-700 border-clay-300';
-  if (level === 'Moderate') return 'bg-terracotta-50 text-terracotta-700 border-terracotta-300';
-  return 'bg-moss-50 text-moss-700 border-moss-300';
-};
+import { predictCustomCoordinate, getRiskColor, getRiskBgClass } from '../services/riskService';
 
 // Custom SVG Pin Generator for Monitored Villages
 const createVillageIcon = (riskLevel, isSelected, name) => {

@@ -1,5 +1,18 @@
 import { VILLAGES } from '../data/villages';
 
+// PRD Step 4 Color Mapping
+export const getRiskColor = (level) => {
+  if (level === 'High') return '#A85448';      // Clay
+  if (level === 'Moderate') return '#C18C5D';  // Terracotta
+  return '#5D7052';                           // Moss
+};
+
+export const getRiskBgClass = (level) => {
+  if (level === 'High') return 'bg-clay-50 text-clay-700 border-clay-300';
+  if (level === 'Moderate') return 'bg-terracotta-50 text-terracotta-700 border-terracotta-300';
+  return 'bg-moss-50 text-moss-700 border-moss-300';
+};
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
 
 /**

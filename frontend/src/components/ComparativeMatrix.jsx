@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, ArrowUpDown, Filter, Search, ExternalLink, Mountain, Wind, Thermometer, Droplets } from 'lucide-react';
-import { getRiskColor, getRiskBgClass } from './VillageMap';
+import { getRiskColor, getRiskBgClass } from '../services/riskService';
 
 export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchToMap }) {
   const [searchTerm, setSearchTerm] = useState('');
