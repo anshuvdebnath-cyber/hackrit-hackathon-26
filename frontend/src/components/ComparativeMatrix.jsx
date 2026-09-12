@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ShieldAlert, ArrowUpDown, Filter, Search, ExternalLink, Mountain, Wind, Thermometer, Droplets } from 'lucide-react';
-import { getRiskColor, getRiskBgClass } from '../services/riskService';
+import { ArrowUpDown, Search, ExternalLink } from 'lucide-react';
+import { getRiskColor } from '../services/riskService';
 
-export function getVillageCategory(v) {
+function getVillageCategory(v) {
   const avalScore = v.avalancheRisk?.score ?? 0;
   const floodScore = v.floodRisk?.score ?? 0;
   const avalLevel = (v.avalancheRisk?.level || '').toUpperCase();

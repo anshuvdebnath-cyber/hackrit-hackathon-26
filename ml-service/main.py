@@ -255,8 +255,14 @@ def predict(data: PredictRequest):
                     wind_slab_bonus = min(18.0, max(0.0, (data.wind_speed - 40.0) * 0.12)) if (data.snow_depth >= 15.0 and data.slope_angle >= 20.0) else 0.0
                     score = round(float(np.clip((base_score * slope_mult) + wind_slab_bonus, 8.0, 99.0)), 1)
                 else:
-                    # Ground snowpack is light, terrain and atmospheric factors preserve original predicted baseline
-                    score = round(float(np.clip(raw_terrain, 15.0, 65.0)), 1)
+                    # Ground snowpack is negligible or bare ground (< 5cm):
+                    # An avalanche physically cannot release without snowpack fuel.
+                    slope_f = 4.0 if 30 <= data.slope_angle <= 45 else (2.0 if data.slope_angle > 45 else 1.0)
+                    wind_f = min(3.0, max(0.0, (data.wind_speed - 5) * 0.15))
+                    temp_f = 1.5 if data.temperature > 2 else (1.0 if data.temperature < -12 else 0.5)
+                    rain_f = min(2.5, data.rainfall * 0.2) if data.rainfall > 0 else 0.0
+                    snow_f = max(0.0, data.snow_depth * 0.4)
+                    score = round(min(14.0, max(3.0, 3.0 + slope_f + wind_f + temp_f + rain_f + snow_f)), 1)
 
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Model inference failed: {str(err)}")

@@ -3,8 +3,15 @@
   "python.analysis.extraPaths": [
     "./ml-service",
     "./.venv/Lib/site-packages",
+    "C:\\Users\\ANSHUV DEBNATH\\AppData\\Roaming\\Python\\Python314\\site-packages",
     "C:\\Users\\ANSHUV DEBNATH\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\site-packages"
   ],
   "python.analysis.autoSearchPaths": true,
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "unnecessary-type-conversion": "none"
+  },
+  "pyrefly.analysis.diagnosticSeverityOverrides": {
+    "unnecessary-type-conversion": "none"
+  }
 }

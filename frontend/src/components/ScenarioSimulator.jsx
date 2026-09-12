@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Sliders, RotateCcw, AlertTriangle, Sparkles, Mountain, Wind, Thermometer, CloudSnow, CloudRain, Cpu } from 'lucide-react';
+import { Sliders, RotateCcw, Sparkles, Mountain, Wind, Thermometer, CloudSnow, CloudRain, Cpu } from 'lucide-react';
 import { calculateSimulatedRisk, simulateScenarioApi, getRiskColor } from '../services/riskService';
 import FeatureImportanceChart from './FeatureImportanceChart';
 
@@ -16,8 +16,9 @@ export default function ScenarioSimulator({ baseVillage }) {
   // Debounced backend ML inference call
   useEffect(() => {
     let isMounted = true;
-    setIsBackendSyncing(true);
     const timer = setTimeout(async () => {
+      if (!isMounted) return;
+      setIsBackendSyncing(true);
       const result = await simulateScenarioApi({
         snow_depth: Number(snowDepth),
         slope_angle: Number(slopeAngle),

@@ -1,18 +1,18 @@
 import React from 'react';
-import { ShieldAlert, AlertTriangle, CheckCircle, Droplets, Mountain, Compass, MapPin, Sparkles, Cpu } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, CheckCircle, Droplets, Mountain, MapPin, Sparkles } from 'lucide-react';
 import { getRiskColor } from '../services/riskService';
 import { useCountUp } from '../hooks/useCountUp';
 
-export default function RiskGauge({ village, modelStatus }) {
+export default function RiskGauge({ village }) {
+  const avalScore = village?.avalancheRisk?.score ?? 0;
+  const avalLevel = village?.avalancheRisk?.level ?? 'Low';
+  const floodScore = village?.floodRisk?.score ?? 0;
+  const floodLevel = village?.floodRisk?.level ?? 'Low';
+
+  const animatedAvalScore = useCountUp(avalScore, 900, avalScore % 1 !== 0 ? 1 : 0, village?.id);
+  const animatedFloodScore = useCountUp(floodScore, 900, 0, village?.id);
+
   if (!village) return null;
-
-  const avalScore = village.avalancheRisk?.score ?? 0;
-  const avalLevel = village.avalancheRisk?.level ?? 'Low';
-  const floodScore = village.floodRisk?.score ?? 0;
-  const floodLevel = village.floodRisk?.level ?? 'Low';
-
-  const animatedAvalScore = useCountUp(avalScore, 900, avalScore % 1 !== 0 ? 1 : 0, village.id);
-  const animatedFloodScore = useCountUp(floodScore, 900, 0, village.id);
 
   const avalColor = getRiskColor(avalLevel);
   const floodColor = getRiskColor(floodLevel);

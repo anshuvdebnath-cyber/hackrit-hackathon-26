@@ -13,14 +13,12 @@ export const getRiskBgClass = (level) => {
   return 'bg-moss-50 text-moss-700 border-moss-300';
 };
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
-
 function safeTimeout(ms = 6000) {
   try {
     if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
       return AbortSignal.timeout(ms);
     }
-  } catch (_e) {}
+  } catch {}
   return undefined;
 }
 
@@ -37,7 +35,7 @@ async function tryFetchGet(endpoint, timeoutMs = 6000) {
     if (res.ok) {
       return await res.json();
     }
-  } catch (_e) {
+  } catch {
     // try fallback
   }
 
@@ -47,7 +45,7 @@ async function tryFetchGet(endpoint, timeoutMs = 6000) {
     if (res.ok) {
       return await res.json();
     }
-  } catch (_e) {
+  } catch {
     // try direct satellite fallback
   }
 
@@ -66,12 +64,12 @@ async function tryFetchPost(endpoint, body, timeoutMs = 6000) {
   try {
     const res = await fetch(`/api${endpoint}`, options);
     if (res.ok) return await res.json();
-  } catch (_e) {}
+  } catch {}
 
   try {
     const res = await fetch(`http://localhost:5000/api${endpoint}`, options);
     if (res.ok) return await res.json();
-  } catch (_e) {}
+  } catch {}
 
   return null;
 }
@@ -315,29 +313,42 @@ export function calculateSimulatedRisk({
   const floodScore = Math.min(98, Math.max(10, parseFloat(floodRaw.toFixed(1))));
   const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
 
-  let slopeScore = 20;
-  if (slope_angle >= 25 && slope_angle <= 45) {
-    const diff = Math.abs(slope_angle - 38);
-    slopeScore = Math.max(30, 95 - diff * 4.5);
-  } else if (slope_angle > 45 && slope_angle <= 60) {
-    slopeScore = Math.max(25, 75 - (slope_angle - 45) * 3);
-  }
-
+  let finalAvalancheScore;
+  let avalancheLevel;
   const snowScore = Math.min(100, Math.max(0, (snow_depth / 60) * 85));
   const windScore = Math.min(100, Math.max(0, (wind_speed / 40) * 85));
-  let tempScore = 30;
-  if (temperature > 0) {
-    tempScore = Math.min(100, 50 + temperature * 6.5);
-  } else if (temperature >= -8 && temperature <= 0) {
-    tempScore = 45;
-  } else {
-    tempScore = Math.min(85, 45 + Math.abs(temperature + 8) * 3);
-  }
 
-  const rainScore = rainfall > 0 ? Math.min(100, 35 + rainfall * 2.5 + (snow_depth > 10 ? 20 : 0)) : 0;
-  const rawScore = (slopeScore * 0.28) + (snowScore * 0.32) + (windScore * 0.22) + (tempScore * 0.10) + (rainScore * 0.08);
-  const finalAvalancheScore = Math.min(99.0, Math.max(10.0, parseFloat(rawScore.toFixed(1))));
-  const avalancheLevel = finalAvalancheScore > 70 ? 'High' : finalAvalancheScore > 40 ? 'Moderate' : 'Low';
+  if (snow_depth < 5) {
+    const slopeF = (slope_angle >= 30 && slope_angle <= 45) ? 4.0 : (slope_angle > 45 ? 2.0 : 1.0);
+    const windF = Math.min(3.0, Math.max(0, (wind_speed - 5) * 0.15));
+    const tempF = temperature > 2 ? 1.5 : (temperature < -12 ? 1.0 : 0.5);
+    const rainF = rainfall > 0 ? Math.min(2.5, rainfall * 0.2) : 0;
+    const snowF = Math.max(0, snow_depth * 0.4);
+    finalAvalancheScore = Math.round(Math.min(14, Math.max(3, 3 + slopeF + windF + tempF + rainF + snowF)) * 10) / 10;
+    avalancheLevel = 'Low';
+  } else {
+    let slopeScore = 20;
+    if (slope_angle >= 25 && slope_angle <= 45) {
+      const diff = Math.abs(slope_angle - 38);
+      slopeScore = Math.max(30, 95 - diff * 4.5);
+    } else if (slope_angle > 45 && slope_angle <= 60) {
+      slopeScore = Math.max(25, 75 - (slope_angle - 45) * 3);
+    }
+
+    let tempScore = 30;
+    if (temperature > 0) {
+      tempScore = Math.min(100, 50 + temperature * 6.5);
+    } else if (temperature >= -8 && temperature <= 0) {
+      tempScore = 45;
+    } else {
+      tempScore = Math.min(85, 45 + Math.abs(temperature + 8) * 3);
+    }
+
+    const rainScore = rainfall > 0 ? Math.min(100, 35 + rainfall * 2.5 + (snow_depth > 10 ? 20 : 0)) : 0;
+    const rawScore = (slopeScore * 0.28) + (snowScore * 0.32) + (windScore * 0.22) + (tempScore * 0.10) + (rainScore * 0.08);
+    finalAvalancheScore = Math.min(99.0, Math.max(10.0, parseFloat(rawScore.toFixed(1))));
+    avalancheLevel = finalAvalancheScore > 70 ? 'High' : finalAvalancheScore > 40 ? 'Moderate' : 'Low';
+  }
 
   const rawImportances = [
     { name: 'Snow Load Ratio', val: snowScore * 0.32 },
@@ -466,7 +477,7 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
             }
           }
         }
-      } catch (_e) {}
+      } catch {}
       const useSlope = (slopeAngle !== null && slopeAngle !== undefined && slopeAngle !== '') ? parseFloat(slopeAngle) : estSlope;
 
       const simulated = calculateSimulatedRisk({
@@ -570,7 +581,7 @@ export async function fetchModelStatus() {
         url: 'http://localhost:8000'
       };
     }
-  } catch (_e) {}
+  } catch {}
 
   const backendStatus = await tryFetchGet('/model-status', 2500);
   if (backendStatus) {

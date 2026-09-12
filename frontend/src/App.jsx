@@ -7,7 +7,7 @@ import WeatherTerrainCards from './components/WeatherTerrainCards';
 import ComparativeMatrix from './components/ComparativeMatrix';
 import ScenarioSimulator from './components/ScenarioSimulator';
 import { fetchVillages, fetchVillageRisk, fetchModelStatus } from './services/riskService';
-import { Mountain, AlertTriangle, ShieldCheck, HeartPulse, RefreshCw, Loader2, Sparkles, Cpu } from 'lucide-react';
+import { Mountain, Loader2 } from 'lucide-react';
 
 export default function App() {
   const [villages, setVillages] = useState([]);

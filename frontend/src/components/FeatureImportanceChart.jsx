@@ -9,7 +9,7 @@ import {
   Legend
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { HelpCircle, Brain, Sparkles, AlertCircle } from 'lucide-react';
+import { Brain } from 'lucide-react';
 
 ChartJS.register(
   CategoryScale,
@@ -20,7 +20,7 @@ ChartJS.register(
   Legend
 );
 
-export default function FeatureImportanceChart({ factors = [], villageName = 'Village', riskLevel = 'Moderate', modelStatus }) {
+export default function FeatureImportanceChart({ factors = [], villageName = 'Village' }) {
   // Sort factors descending
   const sortedFactors = [...factors].sort((a, b) => b.importance - a.importance);
 

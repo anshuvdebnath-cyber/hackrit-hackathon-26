@@ -7,44 +7,38 @@ import {
   Mountain,
   Compass,
   Layers,
-  History,
-  AlertCircle,
   ShieldAlert,
   Sparkles
 } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
 
-export default function WeatherTerrainCards({ village, modelStatus }) {
-  if (!village) return null;
-
-  const weather = village.weather || {};
+export default function WeatherTerrainCards({ village }) {
+  const weather = village?.weather || {};
   const temp = weather.temperature ?? 0;
   const tempRaw = weather.temperature_raw ?? temp;
-  const tempCorrected = weather.temperature_corrected ?? false;
   const wind = weather.windSpeed ?? weather.wind_speed ?? 0;
   const snowFall24h = weather.snowfall24h ?? weather.snowfall_24h ?? 0;
   const rain24h = weather.rainfall24h ?? weather.rainfall ?? 0;
   const snowPack = weather.snowDepth ?? weather.snow_depth ?? 0;
+
+  // Animated numbers from 0 to target (Hooks called unconditionally)
+  const animatedTemp = useCountUp(temp, 850, 1, village?.id);
+  const animatedWind = useCountUp(wind, 850, 1, village?.id);
+  const animatedSnow = useCountUp(snowFall24h, 850, 0, village?.id);
+  const animatedRain = useCountUp(rain24h, 850, 1, village?.id);
+  const animatedSnowPack = useCountUp(snowPack, 850, 0, village?.id);
+
+  if (!village) return null;
+
   const humidity = weather.humidity ?? null;
   const obsTime = weather.observationTime || weather.fetchedAt || null;
-  const source = weather.source || 'live-open-meteo';
-  const modelElev = weather.modelElevation ?? null;
   const slope = village.slopeAngle ?? 0;
   const elevation = village.elevation ?? 0;
   const aspect = village.aspect ?? 'North';
-  const hiAval = village.hiAvalEvents ?? 12;
-
-  // Animated numbers from 0 to target
-  const animatedTemp = useCountUp(temp, 850, 1, village.id);
-  const animatedWind = useCountUp(wind, 850, 1, village.id);
-  const animatedSnow = useCountUp(snowFall24h, 850, 0, village.id);
-  const animatedRain = useCountUp(rain24h, 850, 1, village.id);
-  const animatedSnowPack = useCountUp(snowPack, 850, 0, village.id);
 
   // Physical classification helpers
   const isCriticalSlope = slope >= 30 && slope <= 45;
   const isHighWind = wind >= 20;
-  const isSnowLoading = snowFall24h >= 10 || snowPack >= 30;
 
   // Dynamic DEM Grid Source resolving per-point coordinates & topography
   const getDemSourceInfo = () => {

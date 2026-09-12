@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
-import { Mountain, AlertTriangle, Wind, Thermometer, CloudSnow, ExternalLink, Navigation, Crosshair, Trash2, Loader2, Sparkles } from 'lucide-react';
-import { predictCustomCoordinate, getRiskColor, getRiskBgClass } from '../services/riskService';
+import { Mountain, ExternalLink, Crosshair, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { predictCustomCoordinate, getRiskColor } from '../services/riskService';
 
 // Custom SVG Pin Generator for Monitored Villages
 const createVillageIcon = (riskLevel, isSelected, name) => {
@@ -171,16 +171,20 @@ export default function VillageMap({
 
   // Sync if cleared externally
   useEffect(() => {
-    if (!customLocation) {
-      setCustomPin(null);
-    } else if (!customPin || customPin.lat !== customLocation.lat || customPin.lng !== customLocation.lng) {
-      setCustomPin({
-        lat: customLocation.lat,
-        lng: customLocation.lng,
-        loading: false,
-        data: customLocation
+    queueMicrotask(() => {
+      setCustomPin(prev => {
+        if (!customLocation) return null;
+        if (!prev || prev.lat !== customLocation.lat || prev.lng !== customLocation.lng) {
+          return {
+            lat: customLocation.lat,
+            lng: customLocation.lng,
+            loading: false,
+            data: customLocation
+          };
+        }
+        return prev;
       });
-    }
+    });
   }, [customLocation]);
 
   const handleMapClick = async (lat, lng) => {

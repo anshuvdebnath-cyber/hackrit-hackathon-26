@@ -6,14 +6,14 @@ export default function Header({
   setActiveTab, 
   villages, 
   selectedVillageId, 
-  customLocation,
-  onClearCustom,
-  onSelectVillage,
-  highRiskCount,
-  dataSource = 'backend',
-  modelStatus,
-  isRefreshing = false,
-  onRefresh
+  customLocation, 
+  onClearCustom, 
+  onSelectVillage, 
+  highRiskCount, 
+  dataSource: _dataSource = 'backend', 
+  modelStatus: _modelStatus, 
+  isRefreshing = false, 
+  onRefresh 
 }) {
   return (
     <header className="sticky top-3 sm:top-4 z-[100] w-full px-3 sm:px-6 lg:px-8 max-w-[1440px] mx-auto">
