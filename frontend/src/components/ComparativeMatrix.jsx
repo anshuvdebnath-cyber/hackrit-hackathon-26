@@ -160,8 +160,19 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                     <div className="font-bold text-earth-900 text-sm sm:text-base font-heading">
                       {village.name}
                     </div>
-                    <div className="text-xs text-earth-600 font-medium">
-                      {village.region} · {village.district}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-earth-600 font-medium">
+                        {village.region} · {village.district}
+                      </span>
+                      {village.dgReClassification && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          village.dgReClassification.includes('Red')
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}>
+                          {village.dgReClassification}
+                        </span>
+                      )}
                     </div>
                   </td>
 

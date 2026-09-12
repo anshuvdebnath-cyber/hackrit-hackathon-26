@@ -442,7 +442,18 @@ export default function VillageMap({
                       <h4 className="font-heading font-bold text-earth-950 text-base leading-tight">
                         {v.name}
                       </h4>
-                      <p className="text-xs text-earth-600 font-medium mt-0.5">{v.region}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-xs text-earth-600 font-medium">{v.region}</p>
+                        {v.dgReClassification && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            v.dgReClassification.includes('Red')
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-amber-100 text-amber-800 border border-amber-200'
+                          }`}>
+                            {v.dgReClassification}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span
                       style={{ backgroundColor: getRiskColor(level) }}

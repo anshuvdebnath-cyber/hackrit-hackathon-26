@@ -96,6 +96,8 @@ async function computeVillageTelemetry(village, weatherOverride = null, forceRef
     fullName: village.fullName,
     region: village.region,
     district: village.district,
+    hazardTier: village.hazardTier || 'Standard Sector',
+    dgReClassification: village.dgReClassification || 'DGRE Unzoned',
     lat: village.lat,
     lng: village.lng,
     slopeAngle: village.slopeAngle,
