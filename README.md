@@ -208,25 +208,25 @@ Understanding how Terraform works is simple. Every time you click a point on the
 
 ## 9. 🧗 Honest Challenges We Faced
 
-1. **The "Water Body & Valley" False Positive vs. Underprediction Dilemma**:
-   - *Challenge*: Initially, clicking oceans and flat rivers produced strange non-zero avalanche predictions because satellite APIs showed cold temperatures and precipitation over water. When we introduced a naive water filter, it inadvertently suppressed hazard scores in mountainous valleys and steep hillsides that were once scoring in the 30s–40s down to single digits (<10).
-   - *Resolution*: We implemented strict physical gating in `backend/routes/api.js` and `main.py`: only true horizontal water surfaces ($z \le 0\text{m}$ or $\text{slope} \le 0^\circ$) are isolated to 0.0 avalanche risk, while all terrain with incline $> 0^\circ$ retains full, authentic physical calculations.
+1. **The "Water Body vs. Mountain Valley" Physical Gating Dilemma**:
+   - *Challenge*: Initially, clicking open oceans or sea surfaces produced non-zero avalanche predictions because satellite weather APIs reported cold maritime temperatures and precipitation over water. However, when we introduced an initial naive water filter, it inadvertently suppressed legitimate hazard scores in high-altitude Himalayan valleys and hillsides—dropping scores that were once in the 30s–50s down to single digits (<10), destroying the model's credibility.
+   - *Resolution*: We engineered strict physical boundary guards in `backend/routes/api.js` and `ml-service/main.py`: only genuine horizontal marine surfaces ($z \le 0\text{m}$ or $\text{slope} \le 0^\circ$) are clamped to 0.0 avalanche risk. Any terrain with a measurable incline ($> 0^\circ$) retains full, authentic physical calculations.
 
-2. **Chart.js Infinite Resize Loop in Dynamic Flex Containers**:
-   - *Challenge*: In the What-If Scenario simulator, Chart.js inside a responsive flex column triggered an infinite resize observer feedback loop, causing the canvas height to continuously expand down the page infinitely.
-   - *Resolution*: We constrained the canvas container with a stabilized explicit height (`h-[270px] sm:h-[285px]`) and fixed aspect ratio options, halting the runaway DOM expansion.
+2. **Severe Class Imbalance in Historical Avalanche Ground Truth (HiAVALDB)**:
+   - *Challenge*: Avalanche releases are extreme, temporally sparse events. In the historical catalog, positive avalanche days are heavily outnumbered by thousands of non-event winter days ($>98\%$ negative class). Standard ML loss functions biased the model toward predicting near-zero hazard on almost every day, missing life-threatening release windows.
+   - *Resolution*: During XGBoost training, we applied positive class weighting (`scale_pos_weight`), excluded non-snowpack anomalies (such as bedrock glacier detachments), and introduced physical boundary loss penalties. This ensured the model remains sensitive to critical trigger combinations (fresh snowfall load + $38^\circ$ slope incline) while controlling false positives during stable conditions.
 
-3. **Smooth Bar Transitions vs. Canvas Unmounting**:
-   - *Challenge*: Whenever a user clicked a new village or custom point, the horizontal bar chart flashed and snapped abruptly rather than smoothly animating.
-   - *Resolution*: We discovered that `<Bar key={dynamicKey} />` was forcing React to completely unmount and recreate the HTML5 canvas element on every state change. Removing the key preserved the mounted canvas, enabling Chart.js to perform native 750ms `easeOutQuart` tweening between factor weights.
+3. **Scale Mismatch & High-Altitude Lapse Rate Downscaling**:
+   - *Challenge*: Global meteorological reanalysis models (such as ERA5 and Open-Meteo) operate on horizontal grid resolutions of $\sim 9\text{km}$ to $\sim 25\text{km}$. In the rugged Himalayas, a single grid box can encompass both a $2,000\text{m}$ warm valley basin and a $5,500\text{m}$ freezing ridgeline with a $20^\circ\text{C}$ vertical temperature discrepancy. Relying on raw satellite grid temperatures would falsely indicate thawing at high altitudes or freezing in valleys.
+   - *Resolution*: Implemented dynamic elevation correction using local adiabatic lapse rates ($\approx 6.5^\circ\text{C} / 1,000\text{m}$). The backend compares the satellite model's surface elevation against the fine-scale Copernicus DEM elevation to compute realistic ambient temperatures for the clicked coordinate.
 
-4. **Static Appearance of the DEM Grid Source**:
-   - *Challenge*: Because the Himalayas are almost universally above 3,500m or steeper than 28°, a broad `if (elev >= 3500 || slope >= 28)` condition caused the DEM card to display `"ALOS PALSAR 12.5m DEM"` for almost every coordinate, making it appear hardcoded and static.
-   - *Resolution*: We extracted real 3-point cell elevation samples from the backend, computing unique dynamic **DEM Tile IDs** (e.g. `N32E077`), tiered elevation classifications, and live vertical cell relief ($\Delta z$) for every individual click.
+4. **Instantaneous Real-Time Slope Derivation Without Heavy GeoTIFF Rasters**:
+   - *Challenge*: In traditional GIS workflows, calculating slope angle requires downloading and processing multi-gigabyte raster files (GeoTIFFs) using heavy GIS servers (GDAL / GeoServer). This was impossible for an instant, responsive web application evaluating arbitrary points on Earth in sub-second time.
+   - *Resolution*: We formulated an on-the-fly 3-point orthogonal spatial sampling algorithm over a $500\text{m}$ baseline ($d = 0.0045^\circ$). By correcting for latitude-dependent longitudinal convergence ($m_{\text{lng}} = 111,320 \times \cos(lat)$), the system calculates true directional gradients ($\text{grad}_N, \text{grad}_E$), terrain slope angle, and cell relief ($\Delta z$) in a single lightweight API call taking under 150ms.
 
-5. **Responsive Wrapping & Visual Alignment**:
-   - *Challenge*: Preset buttons and reset actions in the What-If simulator wrapped awkwardly on medium screens, leaving the Reset button orphaned under the "Presets:" text.
-   - *Resolution*: Grouped the label, preset options, and reset button into an inline-flex rounded capsule with unified vertical alignment and terracotta active-state highlighting.
+5. **Coupling Discrete ML Avalanche Mechanics with Continuous Hydrological Flood Physics**:
+   - *Challenge*: Avalanches and Glacial Lake Outburst Floods (GLOFs) are triggered by the same storms, but follow fundamentally different physics. An avalanche is a sudden structural shear failure of a cohesive snow slab (modeled via machine learning probabilities), while a flash flood is continuous fluid mass transport governed by rainfall intensity and thermal snowpack thawing.
+   - *Resolution*: Built a dual-engine architecture: a Python XGBoost microservice handling non-linear slab failure probabilities, running concurrently alongside a calibrated hydrological runoff engine in Node.js that models liquid precipitation pooling and positive-degree snowmelt ($T > 0^\circ\text{C}$) to produce separate, synchronized threat gauges.
 
 ---
 
