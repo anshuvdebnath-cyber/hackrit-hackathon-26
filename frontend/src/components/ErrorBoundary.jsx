@@ -12,7 +12,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error("Terra Watch runtime error caught by boundary:", error, errorInfo);
+    console.error("HimVigil runtime error caught by boundary:", error, errorInfo);
   }
 
   render() {

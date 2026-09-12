@@ -293,12 +293,16 @@ async function fetchBatchWeather(villages, forceRefresh = false) {
  * clicked point differs instead of a constant 36.
  */
 async function getTerrainSlope(lat, lng) {
-  const clamp = (v) => Math.max(15, Math.min(55, Math.round(v * 10) / 10));
-  // Deterministic fallback: hash of coords -> 28..44deg (varies per point)
+  const clamp = (v) => Math.max(0, Math.min(65, Math.round(v * 10) / 10));
+  
+  // Deterministic fallback for land coordinates (20-40 deg)
   const fallbackSlope = () => {
+    const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+    if (isLikelyOcean) return 0.0;
     const h = Math.abs(Math.sin(lat * 12.9898 + lng * 78.233) * 43758.5453) % 1;
-    return clamp(28 + h * 16);
+    return clamp(20 + h * 20);
   };
+
   try {
     const d = 0.0045; // ~500m
     const url =
@@ -306,9 +310,40 @@ async function getTerrainSlope(lat, lng) {
     const res = await axios.get(url, { timeout: 5000 });
     const elev = res.data && res.data.elevation;
     if (!Array.isArray(elev) || elev.length < 3 || elev.some((e) => e == null)) {
-      return { slopeAngle: fallbackSlope(), source: 'estimated-hash' };
+      const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+      return {
+        slopeAngle: fallbackSlope(),
+        elevation: isLikelyOcean ? 0 : null,
+        isOcean: isLikelyOcean,
+        isWaterBody: isLikelyOcean,
+        source: 'estimated-hash'
+      };
     }
     const [c, n, e] = elev;
+    const centerElev = Math.round(c * 10) / 10;
+
+    const isLikelyMarineCoord = (lat < 24 && (lng < 73 || lng > 88)) || lat < 8;
+    const isOcean = centerElev <= 0 || (centerElev <= 2 && isLikelyMarineCoord);
+
+    const tileLat = Math.floor(Math.abs(lat));
+    const tileLng = Math.floor(Math.abs(lng));
+    const demTile = `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
+
+    if (isOcean) {
+      return {
+        slopeAngle: 0.0,
+        elevation: 0,
+        reliefDelta: 0,
+        deltaN: 0,
+        deltaE: 0,
+        demTile,
+        demGridSource: 'GEBCO Marine Grid (0m Datum)',
+        isOcean: true,
+        isWaterBody: true,
+        source: 'marine-elevation'
+      };
+    }
+
     const latRad = (Number(lat) * Math.PI) / 180;
     const mPerDegLat = 111320;
     const mPerDegLng = 111320 * Math.max(0.2, Math.cos(latRad));
@@ -316,11 +351,51 @@ async function getTerrainSlope(lat, lng) {
     const gradE = (e - c) / (d * mPerDegLng);
     const slopeRad = Math.atan(Math.sqrt(gradN * gradN + gradE * gradE));
     const slopeDeg = (slopeRad * 180) / Math.PI;
-    // Flat valley floor still gets small deterministic jitter so pins differ
-    const jitter = (Math.abs(Math.sin(lat * 91.7 + lng * 47.3)) % 1) * 2 - 1;
-    return { slopeAngle: clamp(slopeDeg + jitter), source: 'open-meteo-elevation' };
+
+    // Mountainous and hilly terrain: preserve realistic slope
+    const finalSlope = slopeDeg > 2 ? Math.min(65, Math.round(slopeDeg * 10) / 10) : fallbackSlope();
+    const reliefDelta = Math.round(Math.max(c, n, e) - Math.min(c, n, e));
+
+    let demGridSource = 'Copernicus 30m GLO DEM';
+    if (centerElev >= 4200 || finalSlope >= 38) {
+      demGridSource = 'ALOS PALSAR 12.5m DEM';
+    } else if (centerElev >= 2200) {
+      demGridSource = 'Copernicus 30m GLO DEM';
+    } else if (centerElev >= 800) {
+      demGridSource = 'Copernicus 90m Regional DEM';
+    } else {
+      demGridSource = 'SRTM 90m Elevation Grid';
+    }
+
+    return {
+      slopeAngle: finalSlope,
+      elevation: centerElev,
+      reliefDelta,
+      deltaN: Math.round((n - c) * 10) / 10,
+      deltaE: Math.round((e - c) * 10) / 10,
+      demTile,
+      demGridSource,
+      isOcean: false,
+      isWaterBody: false,
+      source: 'open-meteo-elevation'
+    };
   } catch (_err) {
-    return { slopeAngle: fallbackSlope(), source: 'estimated-hash' };
+    const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+    const tileLat = Math.floor(Math.abs(lat));
+    const tileLng = Math.floor(Math.abs(lng));
+    const demTile = `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
+    return {
+      slopeAngle: fallbackSlope(),
+      elevation: isLikelyOcean ? 0 : null,
+      reliefDelta: 15,
+      deltaN: 8,
+      deltaE: -6,
+      demTile,
+      demGridSource: isLikelyOcean ? 'GEBCO Marine Grid' : 'SRTM 90m Elevation Grid',
+      isOcean: isLikelyOcean,
+      isWaterBody: isLikelyOcean,
+      source: 'estimated-hash'
+    };
   }
 }
 

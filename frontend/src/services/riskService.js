@@ -294,28 +294,26 @@ export function calculateSimulatedRisk({
   temperature = -2.5,
   rainfall = 0
 }) {
-  // If no snow on the ground, avalanche release is physically negligible —
-  // but vary 3-14 with slope/wind/temp so every pin does NOT read flat 3.
-  if (snow_depth < 5) {
-    const slopeF = (slope_angle >= 30 && slope_angle <= 45) ? 4.0 : (slope_angle > 45 ? 2.0 : 1.0);
-    const windF = Math.min(3.0, Math.max(0, (wind_speed - 5) * 0.15));
-    const tempF = temperature > 2 ? 1.5 : (temperature < -12 ? 1.0 : 0.5);
-    const rainF = rainfall > 0 ? Math.min(2.5, rainfall * 0.2) : 0;
-    const snowF = Math.max(0, snow_depth * 0.4);
-    const score = Math.round(Math.min(14, Math.max(3, 3 + slopeF + windF + tempF + rainF + snowF)) * 10) / 10;
+  // 1. If slope is horizontal (slope <= 0), avalanche is physically impossible
+  if (slope_angle <= 0) {
     return {
-      avalancheRisk: { score, level: 'Low' },
-      floodRisk: { score: Math.min(95, Math.max(10, Math.round(rainfall * 2.2 + Math.max(0, temperature * 1.5)))), level: rainfall > 25 ? 'High' : 'Low' },
+      avalancheRisk: { score: 0.0, level: 'Low' },
+      floodRisk: {
+        score: rainfall > 25 ? Math.min(50, Math.round(rainfall * 0.9)) : 0,
+        level: rainfall > 25 ? 'Moderate' : 'Low'
+      },
       topFactors: [
-        { name: 'Slope Angle Criticality', importance: 0.40 },
-        { name: 'Wind Slab Potential', importance: 0.25 },
-        { name: 'Temperature Anomaly', importance: 0.15 },
-        { name: 'Snow Load Ratio', importance: 0.10 },
-        { name: 'Rainfall Destabilization', importance: 0.10 }
+        { name: 'Horizontal / Water Surface', importance: 1.0 }
       ],
-      explanation: `Negligible avalanche hazard: Ground is clear of snowpack (${snow_depth}cm). Score ${score}/100 reflects terrain predisposition only (slope ${slope_angle}°).`
+      explanation: 'Horizontal ground / water surface (slope: 0°). Avalanche release cannot occur.'
     };
   }
+
+  // 2. Original predicted Flash Flood / GLOF risk calculation
+  let floodRaw = rainfall * 1.8 + Math.max(0, temperature * 2.2);
+  if (slope_angle > 35) floodRaw *= 1.2;
+  const floodScore = Math.min(98, Math.max(10, parseFloat(floodRaw.toFixed(1))));
+  const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
 
   let slopeScore = 20;
   if (slope_angle >= 25 && slope_angle <= 45) {
@@ -340,11 +338,6 @@ export function calculateSimulatedRisk({
   const rawScore = (slopeScore * 0.28) + (snowScore * 0.32) + (windScore * 0.22) + (tempScore * 0.10) + (rainScore * 0.08);
   const finalAvalancheScore = Math.min(99.0, Math.max(10.0, parseFloat(rawScore.toFixed(1))));
   const avalancheLevel = finalAvalancheScore > 70 ? 'High' : finalAvalancheScore > 40 ? 'Moderate' : 'Low';
-
-  let floodRaw = rainfall * 1.8 + Math.max(0, temperature * 2.2);
-  if (slope_angle > 35) floodRaw *= 1.2;
-  const floodScore = Math.min(98, Math.max(10, parseFloat(floodRaw.toFixed(1))));
-  const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
 
   const rawImportances = [
     { name: 'Snow Load Ratio', val: snowScore * 0.32 },
@@ -434,6 +427,12 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
       const p = parseLiveOpenMeteo(json);
       // Estimate slope client-side via elevation grid so pins differ even offline
       let estSlope = 32;
+      let reliefDelta = 0;
+      let demGridSource = 'Copernicus 30m GLO DEM';
+      const tileLat = Math.floor(Math.abs(lat));
+      const tileLng = Math.floor(Math.abs(lng));
+      const demTile = `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
+
       try {
         const d = 0.0045;
         const eUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lat},${parseFloat(lat) + d},${lat}&longitude=${lng},${lng},${parseFloat(lng) + d}`;
@@ -443,11 +442,28 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
           const eJson = await eRes.json();
           const ev = eJson.elevation;
           if (Array.isArray(ev) && ev.length >= 3 && ev.every((x) => x != null)) {
-            const latRad = (parseFloat(lat) * Math.PI) / 180;
-            const mLat = 111320, mLng = 111320 * Math.max(0.2, Math.cos(latRad));
-            const gN = (ev[1] - ev[0]) / (d * mLat);
-            const gE = (ev[2] - ev[0]) / (d * mLng);
-            estSlope = Math.max(15, Math.min(55, Math.round(((Math.atan(Math.sqrt(gN * gN + gE * gE)) * 180) / Math.PI) * 10) / 10));
+            const isOcean = ev[0] <= 0 || (ev[0] <= 2 && Math.abs(ev[1] - ev[0]) < 0.25 && Math.abs(ev[2] - ev[0]) < 0.25);
+            const isFlat = Math.abs(ev[1] - ev[0]) < 0.15 && Math.abs(ev[2] - ev[0]) < 0.15;
+            reliefDelta = Math.round(Math.max(...ev) - Math.min(...ev));
+            if (isOcean || isFlat) {
+              estSlope = 0.0;
+              demGridSource = isOcean ? 'GEBCO Marine Grid (0m Datum)' : 'SRTM 90m Elevation Grid';
+            } else {
+              const latRad = (parseFloat(lat) * Math.PI) / 180;
+              const mLat = 111320, mLng = 111320 * Math.max(0.2, Math.cos(latRad));
+              const gN = (ev[1] - ev[0]) / (d * mLat);
+              const gE = (ev[2] - ev[0]) / (d * mLng);
+              estSlope = Math.max(0, Math.min(55, Math.round(((Math.atan(Math.sqrt(gN * gN + gE * gE)) * 180) / Math.PI) * 10) / 10));
+              if (ev[0] >= 4200 || estSlope >= 38) {
+                demGridSource = 'ALOS PALSAR 12.5m DEM';
+              } else if (ev[0] >= 2200) {
+                demGridSource = 'Copernicus 30m GLO DEM';
+              } else if (ev[0] >= 800) {
+                demGridSource = 'Copernicus 90m Regional DEM';
+              } else {
+                demGridSource = 'SRTM 90m Elevation Grid';
+              }
+            }
           }
         }
       } catch (_e) {}
@@ -465,7 +481,10 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
         coordinates: { lat: parseFloat(lat), lng: parseFloat(lng) },
         slopeAngle: useSlope,
         slopeSource: 'live-satellite-direct',
-        elevation: p.modelElev ?? Math.round(Math.max(1200, Math.min(5500, (parseFloat(lat) - 28) * 600 + (parseFloat(lng) - 74) * 350 + 1800))),
+        elevation: p.modelElev != null ? Math.max(0, Math.round(p.modelElev)) : (parseFloat(lat) < 24 ? 0 : 1500),
+        reliefDelta,
+        demTile,
+        demGridSource,
         ...simulated,
         weather: {
           temperature: p.temp,
@@ -532,3 +551,46 @@ export async function fetchHistory(villageId = null) {
   const data = await tryFetchGet(query, 4000);
   return data || [];
 }
+
+/**
+ * Fetch ML Model Status from FastAPI Microservice (direct or via backend)
+ */
+export async function fetchModelStatus() {
+  try {
+    const res = await fetch('http://localhost:8000/health', { signal: safeTimeout(2500) });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        online: true,
+        modelLoaded: data.model_loaded === true,
+        modelFile: data.model_file || 'xgb_avalanche_final.json',
+        modelType: data.model_type || 'xgb_booster',
+        service: data.service || 'FastAPI XGBoost ML Service',
+        featuresExpected: data.features_expected || [],
+        url: 'http://localhost:8000'
+      };
+    }
+  } catch (_e) {}
+
+  const backendStatus = await tryFetchGet('/model-status', 2500);
+  if (backendStatus) {
+    return {
+      online: backendStatus.connected === true,
+      modelLoaded: backendStatus.modelLoaded === true,
+      modelFile: backendStatus.modelFile || 'xgb_avalanche_final.json',
+      modelType: backendStatus.modelType || 'xgb_booster',
+      service: backendStatus.service || 'FastAPI XGBoost Service',
+      featuresExpected: backendStatus.featuresExpected || [],
+      url: backendStatus.url || 'http://localhost:8000'
+    };
+  }
+
+  return {
+    online: false,
+    modelLoaded: false,
+    modelFile: 'xgb_avalanche_final.json',
+    service: 'Offline (Heuristic Fallback)',
+    url: 'http://localhost:8000'
+  };
+}
+

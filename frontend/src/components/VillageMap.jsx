@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { Mountain, AlertTriangle, Wind, Thermometer, CloudSnow, ExternalLink, Navigation, Crosshair, Trash2, Loader2, Sparkles } from 'lucide-react';
@@ -141,8 +141,8 @@ function MapClickHandler({ onMapClick }) {
 function MapCameraController({ selectedVillage }) {
   const map = useMap();
   useEffect(() => {
-    if (selectedVillage) {
-      map.flyTo([selectedVillage.lat, selectedVillage.lng], 10, {
+    if (selectedVillage && !selectedVillage.isCustom) {
+      map.flyTo([selectedVillage.lat, selectedVillage.lng], 8, {
         duration: 1.2,
         easeLinearity: 0.25
       });
@@ -151,9 +151,37 @@ function MapCameraController({ selectedVillage }) {
   return null;
 }
 
-export default function VillageMap({ villages, selectedVillageId, onSelect }) {
-  const selectedVillage = villages.find(v => v.id === selectedVillageId) || villages[0];
-  const [customPin, setCustomPin] = useState(null);
+export default function VillageMap({
+  villages,
+  selectedVillageId,
+  onSelect,
+  onSelectCustom,
+  customLocation,
+  onClearCustom,
+  onEvaluatingCustom
+}) {
+  const selectedVillage = customLocation || villages.find(v => v.id === selectedVillageId) || villages[0];
+  const [customPin, setCustomPin] = useState(customLocation ? {
+    lat: customLocation.lat,
+    lng: customLocation.lng,
+    loading: false,
+    data: customLocation
+  } : null);
+  const customMarkerRef = useRef(null);
+
+  // Sync if cleared externally
+  useEffect(() => {
+    if (!customLocation) {
+      setCustomPin(null);
+    } else if (!customPin || customPin.lat !== customLocation.lat || customPin.lng !== customLocation.lng) {
+      setCustomPin({
+        lat: customLocation.lat,
+        lng: customLocation.lng,
+        loading: false,
+        data: customLocation
+      });
+    }
+  }, [customLocation]);
 
   const handleMapClick = async (lat, lng) => {
     setCustomPin({
@@ -162,6 +190,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
       loading: true,
       data: null
     });
+    onEvaluatingCustom?.({ lat, lng, loading: true });
 
     try {
       const data = await predictCustomCoordinate(lat, lng);
@@ -171,44 +200,88 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
         loading: false,
         data
       });
-    } catch {
+
+      if (data) {
+        const customSector = {
+          id: `custom-${lat.toFixed(4)}-${lng.toFixed(4)}`,
+          name: `Sector [${lat.toFixed(3)}°N, ${lng.toFixed(3)}°E]`,
+          fullName: `Custom Terrain Sector [${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E]`,
+          district: `GPS Sector (${lat >= 0 ? lat.toFixed(3) + '°N' : Math.abs(lat).toFixed(3) + '°S'}, ${lng >= 0 ? lng.toFixed(3) + '°E' : Math.abs(lng).toFixed(3) + '°W'})`,
+          region: 'Dynamic Himalayan DEM Sector',
+          lat: parseFloat(lat),
+          lng: parseFloat(lng),
+          elevation: data.elevation ?? data.weather?.modelElevation ?? 0,
+          slopeAngle: data.slopeAngle ?? 0,
+          slopeSource: data.slopeSource || 'open-meteo-elevation',
+          isOcean: !!data.isOcean,
+          isWaterBody: !!data.isWaterBody,
+          demTile: data.demTile || '',
+          demGridSource: data.demGridSource || '',
+          reliefDelta: data.reliefDelta ?? null,
+          aspect: (data.slopeAngle ?? 0) > 30 ? 'North-East Chute' : ((data.elevation ?? 0) <= 0 ? 'Sea Level Marine' : 'Valley Floor'),
+          hiAvalEvents: 0,
+          avalancheRisk: data.avalancheRisk,
+          floodRisk: data.floodRisk,
+          weather: data.weather,
+          topFactors: data.topFactors,
+          explanation: data.explanation,
+          statusSummary: data.explanation || `Evaluated by XGBoost model with live satellite and DEM elevation grid.`,
+          source: data.source || 'live-fastapi-xgboost',
+          isCustom: true
+        };
+        onSelectCustom?.(customSector);
+      }
+    } catch (err) {
+      console.error('[TerraWatch] Error predicting coordinate:', err);
       setCustomPin(null);
+      onEvaluatingCustom?.(null);
     }
   };
 
+  const handleClearPin = () => {
+    setCustomPin(null);
+    onClearCustom?.();
+  };
+
+  useEffect(() => {
+    if (customPin) {
+      customMarkerRef.current?.openPopup();
+    }
+  }, [customPin]);
+
   return (
-    <div className="relative isolate z-0 w-full h-[460px] sm:h-[480px] lg:h-[500px] rounded-2xl overflow-hidden border border-earth-300/80 shadow-lg bg-earth-200">
-      
+    <div className="relative isolate z-0 w-full h-[400px] sm:h-[420px] lg:h-[430px] rounded-2xl overflow-hidden border border-earth-300/80 shadow-lg bg-earth-200">
       {/* Top Map Toolbar */}
-      <div className="absolute top-3 left-3 z-[400] bg-earth-900/90 backdrop-blur-sm text-earth-100 px-3.5 py-2 rounded-xl border border-earth-700/80 shadow-md flex items-center gap-3 text-xs pointer-events-auto">
-        <div className="flex items-center gap-2 font-bold text-terracotta-300">
-          <Mountain className="w-4 h-4" />
-          <span>Himalayan Risk Geoscope</span>
-        </div>
-        <span className="text-earth-600">|</span>
-        <span className="text-earth-200 font-medium">
-          {villages.length} Monitored Villages
+      <div className="absolute top-3 left-3 z-[400] bg-earth-900/90 backdrop-blur-sm text-earth-100 px-3 py-1.5 rounded-xl border border-earth-700/80 shadow-md flex items-center gap-2.5 text-xs pointer-events-auto">
+        <span className="text-earth-200 font-medium flex items-center gap-1.5">
+          <Mountain className="w-3.5 h-3.5 text-terracotta-400" />
+          <span>{villages.length} Villages</span>
         </span>
         <span className="text-earth-600">|</span>
-        <span className="text-earth-300 text-xs hidden sm:inline-flex items-center gap-1.5 font-medium">
+        <span className="text-earth-300 text-xs inline-flex items-center gap-1.5 font-medium">
           <Crosshair className="w-3.5 h-3.5 text-terracotta-400" />
-          Click map to evaluate custom coordinates
+          Click map to evaluate point
         </span>
         {customPin && (
-          <button
-            onClick={() => setCustomPin(null)}
-            className="ml-1 text-xs bg-earth-800 hover:bg-earth-700 text-terracotta-300 font-semibold px-2.5 py-1 rounded border border-earth-700 transition"
-          >
-            Clear Pin
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono font-bold text-moss-300 hidden md:inline-flex items-center gap-1 bg-earth-800/90 px-2 py-0.5 rounded border border-earth-700">
+              <Sparkles className="w-3 h-3 text-terracotta-400" />
+              <span>Pin: {customPin.lat.toFixed(2)}°, {customPin.lng.toFixed(2)}°</span>
+            </span>
+            <button
+              onClick={handleClearPin}
+              className="text-xs bg-earth-800 hover:bg-earth-700 text-terracotta-300 hover:text-terracotta-200 font-semibold px-2 py-0.5 rounded border border-earth-700 transition cursor-pointer"
+            >
+              Reset to Villages
+            </button>
+          </div>
         )}
       </div>
 
       {/* Map Legend Overlay */}
       <div className="absolute bottom-4 left-4 z-[400] bg-earth-900/95 backdrop-blur-md text-earth-100 p-4 rounded-xl border border-earth-700/90 shadow-xl text-xs sm:text-sm space-y-2 max-w-[260px] pointer-events-auto select-none">
-        <div className="font-bold text-earth-100 mb-1 flex items-center justify-between gap-3">
+        <div className="font-bold text-earth-100 mb-1">
           <span className="font-heading">Avalanche Threat Key</span>
-          <span className="text-xs text-earth-400 font-normal">HiAVAL Standards</span>
         </div>
         <div className="flex items-center gap-2.5">
           <span className="w-3.5 h-3.5 rounded-full bg-clay-500 inline-block shadow"></span>
@@ -257,6 +330,8 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
         {/* Dynamic Marker for Clicked Arbitrary Coordinates */}
         {customPin && (
           <Marker
+            ref={customMarkerRef}
+            key={`${customPin.lat}-${customPin.lng}`}
             position={[customPin.lat, customPin.lng]}
             icon={createCustomPinIcon(customPin.loading, customPin.data?.avalancheRisk?.level)}
           >
@@ -298,7 +373,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                     <div className="grid grid-cols-2 gap-2 text-xs text-earth-900 mb-2.5">
                       <div className="bg-earth-100/90 p-2 rounded-lg">
                         <span className="text-xs text-earth-600 font-medium block">Est. Elevation</span>
-                        <span className="font-bold text-sm text-earth-950">{customPin.data.elevation || customPin.data.weather?.modelElevation || 2850}m</span>
+                        <span className="font-bold text-sm text-earth-950">{customPin.data.elevation ?? customPin.data.weather?.modelElevation ?? 0}m</span>
                       </div>
                       <div className="bg-earth-100/90 p-2 rounded-lg">
                         <span className="text-xs text-earth-600 font-medium block">Slope Angle (DEM)</span>
@@ -311,9 +386,16 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       <div className="bg-earth-100/90 p-2 rounded-lg">
                         <span className="text-xs text-earth-600 font-medium block">Avalanche Score</span>
                         <span className="font-bold text-sm" style={{ color: getRiskColor(customPin.data.avalancheRisk?.level) }}>
-                          {customPin.data.avalancheRisk?.score}/100
+                          {customPin.data.avalancheRisk?.score ?? '--'}/100
                         </span>
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-earth-700 bg-earth-50 px-2.5 py-2 rounded-md mb-2.5">
+                      <span>Pressure: {customPin.data.weather?.pressure_hPa ?? '--'} hPa</span>
+                      <span>Dew point: {customPin.data.weather?.dewpoint_C ?? '--'}°C</span>
+                      <span>Humidity: {customPin.data.weather?.humidity ?? '--'}%</span>
+                      <span>Precipitation: {customPin.data.weather?.precip_mm ?? '--'} mm</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-earth-700 bg-earth-100/90 px-2.5 py-1 rounded-md mb-1 font-mono font-medium">
@@ -325,18 +407,30 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       <span>Obs {customPin.data.weather?.observationTime ?? '--'}</span>
                     </div>
 
+                    <div className="text-[11px] text-earth-700 bg-earth-100/90 px-2.5 py-1.5 rounded-md mb-2.5">
+                      <span className="font-semibold">Model driver:</span>{' '}
+                      {customPin.data.topFactors?.[0]?.name || 'Unavailable'}
+                      <span className="font-mono ml-1">({((customPin.data.topFactors?.[0]?.importance || 0) * 100).toFixed(1)}%)</span>
+                      <span className="block mt-0.5 text-earth-600">Source: {customPin.data.source || 'unknown'}</span>
+                    </div>
+
                     {customPin.data.explanation && (
                       <p className="text-xs sm:text-[13px] text-earth-800 bg-earth-50 p-2 rounded-lg border border-earth-200/90 mb-2.5 leading-relaxed font-medium">
                         {customPin.data.explanation}
                       </p>
                     )}
 
+                    <div className="bg-moss-50 border border-moss-200 text-moss-800 p-2 rounded-lg text-xs font-bold mb-2 text-center flex items-center justify-center gap-1.5 shadow-xs">
+                      <Sparkles className="w-3.5 h-3.5 text-moss-600 flex-shrink-0" />
+                      <span>Loaded into Telemetry Dashboard Below</span>
+                    </div>
+
                     <button
-                      onClick={() => setCustomPin(null)}
+                      onClick={handleClearPin}
                       className="w-full py-1.5 px-3 bg-earth-200 hover:bg-earth-300 text-earth-800 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>Clear Custom Point</span>
+                      <span>Clear Point & Reset to Villages</span>
                     </button>
                   </div>
                 ) : null}
@@ -346,7 +440,7 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
         )}
 
         {villages.map((v) => {
-          const isSelected = v.id === selectedVillageId;
+          const isSelected = v.id === selectedVillageId && !customPin;
           const level = v.avalancheRisk?.level || 'Low';
           const icon = createVillageIcon(level, isSelected, v.name.split(' ')[0]);
 
@@ -356,7 +450,11 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
               position={[v.lat, v.lng]}
               icon={icon}
               eventHandlers={{
-                click: () => onSelect(v.id),
+                click: () => {
+                  setCustomPin(null);
+                  onClearCustom?.();
+                  onSelect(v.id);
+                },
               }}
             >
               <Popup className="village-leaflet-popup">
@@ -366,7 +464,18 @@ export default function VillageMap({ villages, selectedVillageId, onSelect }) {
                       <h4 className="font-heading font-bold text-earth-950 text-base leading-tight">
                         {v.name}
                       </h4>
-                      <p className="text-xs text-earth-600 font-medium mt-0.5">{v.region}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-xs text-earth-600 font-medium">{v.region}</p>
+                        {v.dgReClassification && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            v.dgReClassification.includes('Red')
+                              ? 'bg-red-100 text-red-700 border border-red-200'
+                              : 'bg-amber-100 text-amber-800 border border-amber-200'
+                          }`}>
+                            {v.dgReClassification}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <span
                       style={{ backgroundColor: getRiskColor(level) }}
