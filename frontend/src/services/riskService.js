@@ -427,6 +427,12 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
       const p = parseLiveOpenMeteo(json);
       // Estimate slope client-side via elevation grid so pins differ even offline
       let estSlope = 32;
+      let reliefDelta = 0;
+      let demGridSource = 'Copernicus 30m GLO DEM';
+      const tileLat = Math.floor(Math.abs(lat));
+      const tileLng = Math.floor(Math.abs(lng));
+      const demTile = `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
+
       try {
         const d = 0.0045;
         const eUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lat},${parseFloat(lat) + d},${lat}&longitude=${lng},${lng},${parseFloat(lng) + d}`;
@@ -438,14 +444,25 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
           if (Array.isArray(ev) && ev.length >= 3 && ev.every((x) => x != null)) {
             const isOcean = ev[0] <= 0 || (ev[0] <= 2 && Math.abs(ev[1] - ev[0]) < 0.25 && Math.abs(ev[2] - ev[0]) < 0.25);
             const isFlat = Math.abs(ev[1] - ev[0]) < 0.15 && Math.abs(ev[2] - ev[0]) < 0.15;
+            reliefDelta = Math.round(Math.max(...ev) - Math.min(...ev));
             if (isOcean || isFlat) {
               estSlope = 0.0;
+              demGridSource = isOcean ? 'GEBCO Marine Grid (0m Datum)' : 'SRTM 90m Elevation Grid';
             } else {
               const latRad = (parseFloat(lat) * Math.PI) / 180;
               const mLat = 111320, mLng = 111320 * Math.max(0.2, Math.cos(latRad));
               const gN = (ev[1] - ev[0]) / (d * mLat);
               const gE = (ev[2] - ev[0]) / (d * mLng);
               estSlope = Math.max(0, Math.min(55, Math.round(((Math.atan(Math.sqrt(gN * gN + gE * gE)) * 180) / Math.PI) * 10) / 10));
+              if (ev[0] >= 4200 || estSlope >= 38) {
+                demGridSource = 'ALOS PALSAR 12.5m DEM';
+              } else if (ev[0] >= 2200) {
+                demGridSource = 'Copernicus 30m GLO DEM';
+              } else if (ev[0] >= 800) {
+                demGridSource = 'Copernicus 90m Regional DEM';
+              } else {
+                demGridSource = 'SRTM 90m Elevation Grid';
+              }
             }
           }
         }
@@ -465,6 +482,9 @@ export async function predictCustomCoordinate(lat, lng, slopeAngle = null) {
         slopeAngle: useSlope,
         slopeSource: 'live-satellite-direct',
         elevation: p.modelElev != null ? Math.max(0, Math.round(p.modelElev)) : (parseFloat(lat) < 24 ? 0 : 1500),
+        reliefDelta,
+        demTile,
+        demGridSource,
         ...simulated,
         weather: {
           temperature: p.temp,

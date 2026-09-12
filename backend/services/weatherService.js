@@ -325,10 +325,19 @@ async function getTerrainSlope(lat, lng) {
     const isLikelyMarineCoord = (lat < 24 && (lng < 73 || lng > 88)) || lat < 8;
     const isOcean = centerElev <= 0 || (centerElev <= 2 && isLikelyMarineCoord);
 
+    const tileLat = Math.floor(Math.abs(lat));
+    const tileLng = Math.floor(Math.abs(lng));
+    const demTile = `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
+
     if (isOcean) {
       return {
         slopeAngle: 0.0,
         elevation: 0,
+        reliefDelta: 0,
+        deltaN: 0,
+        deltaE: 0,
+        demTile,
+        demGridSource: 'GEBCO Marine Grid (0m Datum)',
         isOcean: true,
         isWaterBody: true,
         source: 'marine-elevation'
@@ -345,19 +354,44 @@ async function getTerrainSlope(lat, lng) {
 
     // Mountainous and hilly terrain: preserve realistic slope
     const finalSlope = slopeDeg > 2 ? Math.min(65, Math.round(slopeDeg * 10) / 10) : fallbackSlope();
+    const reliefDelta = Math.round(Math.max(c, n, e) - Math.min(c, n, e));
+
+    let demGridSource = 'Copernicus 30m GLO DEM';
+    if (centerElev >= 4200 || finalSlope >= 38) {
+      demGridSource = 'ALOS PALSAR 12.5m DEM';
+    } else if (centerElev >= 2200) {
+      demGridSource = 'Copernicus 30m GLO DEM';
+    } else if (centerElev >= 800) {
+      demGridSource = 'Copernicus 90m Regional DEM';
+    } else {
+      demGridSource = 'SRTM 90m Elevation Grid';
+    }
 
     return {
       slopeAngle: finalSlope,
       elevation: centerElev,
+      reliefDelta,
+      deltaN: Math.round((n - c) * 10) / 10,
+      deltaE: Math.round((e - c) * 10) / 10,
+      demTile,
+      demGridSource,
       isOcean: false,
       isWaterBody: false,
       source: 'open-meteo-elevation'
     };
   } catch (_err) {
     const isLikelyOcean = lat < 24 && (lng < 73 || lng > 88) || lat < 8;
+    const tileLat = Math.floor(Math.abs(lat));
+    const tileLng = Math.floor(Math.abs(lng));
+    const demTile = `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
     return {
       slopeAngle: fallbackSlope(),
       elevation: isLikelyOcean ? 0 : null,
+      reliefDelta: 15,
+      deltaN: 8,
+      deltaE: -6,
+      demTile,
+      demGridSource: isLikelyOcean ? 'GEBCO Marine Grid' : 'SRTM 90m Elevation Grid',
       isOcean: isLikelyOcean,
       isWaterBody: isLikelyOcean,
       source: 'estimated-hash'

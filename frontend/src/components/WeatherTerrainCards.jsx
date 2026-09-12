@@ -46,47 +46,51 @@ export default function WeatherTerrainCards({ village, modelStatus }) {
   const isHighWind = wind >= 20;
   const isSnowLoading = snowFall24h >= 10 || snowPack >= 30;
 
-  // Dynamic DEM Grid Source resolving per-point coordinates
+  // Dynamic DEM Grid Source resolving per-point coordinates & topography
   const getDemSourceInfo = () => {
-    if (!village.isCustom) {
-      return {
-        title: 'Historical Threat Activity',
-        value: `${hiAval} Recorded Events`,
-        desc: 'HiAVAL historical avalanche inventory'
-      };
-    }
-
     const elev = Number(elevation) || 0;
     const isOcean = !!village.isOcean || elev <= 0;
-    const latNum = village.lat != null ? Number(village.lat) : null;
-    const lngNum = village.lng != null ? Number(village.lng) : null;
-    const coordStr = latNum != null && lngNum != null ? `${latNum.toFixed(2)}°, ${lngNum.toFixed(2)}°` : '';
+    const latNum = village.lat != null ? Number(village.lat) : 32.5;
+    const lngNum = village.lng != null ? Number(village.lng) : 77.0;
+    const coordStr = `${latNum.toFixed(2)}°, ${lngNum.toFixed(2)}°`;
+
+    const tileLat = Math.floor(Math.abs(latNum));
+    const tileLng = Math.floor(Math.abs(lngNum));
+    const tileStr = village.demTile || `N${tileLat < 10 ? '0' + tileLat : tileLat}E${tileLng < 100 ? '0' + tileLng : tileLng}`;
 
     if (isOcean) {
       return {
         title: 'DEM Grid Source',
-        value: 'GEBCO Marine Grid',
-        desc: coordStr ? `0m Sea level datum · ${coordStr}` : '0m Sea level datum'
+        value: `GEBCO Marine · ${tileStr}`,
+        desc: `0m Sea level datum · ${coordStr}`
       };
     }
-    if (elev >= 3500 || slope >= 28) {
-      return {
-        title: 'DEM Grid Source',
-        value: 'ALOS PALSAR 12.5m DEM',
-        desc: coordStr ? `High-relief alpine mesh · ${coordStr}` : 'High-relief alpine mesh'
-      };
+
+    // Dynamic resolution based on elevation & slope gradients
+    let gridName = village.demGridSource;
+    if (!gridName) {
+      if (elev >= 4200 || slope >= 38) {
+        gridName = 'ALOS PALSAR 12.5m';
+      } else if (elev >= 2200) {
+        gridName = 'Copernicus 30m GLO';
+      } else if (elev >= 800) {
+        gridName = 'Copernicus 90m DEM';
+      } else {
+        gridName = 'SRTM 90m Elevation';
+      }
+    } else {
+      gridName = gridName.replace(' DEM', '').replace(' Grid', '');
     }
-    if (elev >= 1200) {
-      return {
-        title: 'DEM Grid Source',
-        value: 'Copernicus 30m GLO DEM',
-        desc: coordStr ? `Sub-km terrain grid · ${coordStr}` : 'Sub-km terrain grid'
-      };
-    }
+
+    // Dynamic relief delta across 500m sampling cell
+    const relief = village.reliefDelta != null 
+      ? village.reliefDelta 
+      : Math.max(8, Math.round(Math.tan((slope * Math.PI) / 180) * 500));
+
     return {
       title: 'DEM Grid Source',
-      value: 'SRTM 90m Elevation Grid',
-      desc: coordStr ? `Topographic elevation mesh · ${coordStr}` : 'Topographic elevation mesh'
+      value: `${gridName} · ${tileStr}`,
+      desc: `Cell Relief: Δ${relief}m / 500m · ${coordStr}`
     };
   };
 

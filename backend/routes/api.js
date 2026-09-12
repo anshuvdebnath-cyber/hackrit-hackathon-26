@@ -309,6 +309,11 @@ router.post('/predict-coordinate', async (req, res) => {
       slopeAngle,
       slopeSource,
       elevation,
+      reliefDelta: terrain.reliefDelta ?? 0,
+      demTile: terrain.demTile ?? '',
+      demGridSource: terrain.demGridSource ?? 'Copernicus 30m GLO DEM',
+      deltaN: terrain.deltaN ?? 0,
+      deltaE: terrain.deltaE ?? 0,
       isOcean,
       isWaterBody,
       avalancheRisk: {
