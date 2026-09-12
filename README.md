@@ -103,7 +103,7 @@ Every coordinate is mapped into the following vector:
 
 ---
 
-## 6. 🏗️ Website Process Architecture (Simplified & Intuitive)
+## 6. 🏗️ Complete Website Process Architecture in Detail
 
 Understanding how HimVigil works is simple. Every time you click a point on the map or select a village, data flows through **4 straightforward steps**:
 
