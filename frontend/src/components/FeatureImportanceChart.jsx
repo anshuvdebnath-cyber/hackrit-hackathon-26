@@ -149,8 +149,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   };
 
   // Dynamic canvas key ensuring instant re-render upon random point click
-  const dynamicKey = `${villageName}_${sortedFactors.map(f => `${f.name}-${f.importance}`).join('_')}`;
-  const containerHeight = Math.max(220, Math.min(320, sortedFactors.length * 28 + 30));
+  const dynamicKey = `chart_${villageName}_${sortedFactors.map(f => `${f.name}:${f.importance}`).join('|')}`;
 
   return (
     <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-4 h-full flex flex-col justify-between">
@@ -176,10 +175,9 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         </p>
       </div>
 
-      {/* Chart.js Container with clean row separation */}
+      {/* Chart.js Container with clean row separation & expanded height utilizing available space */}
       <div 
-        className="w-full bg-white p-2.5 rounded-xl border border-earth-200/80 shadow-inner"
-        style={{ height: `${containerHeight}px` }}
+        className="w-full flex-1 min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] bg-white p-3 rounded-xl border border-earth-200/80 shadow-inner flex flex-col justify-center"
       >
         <Bar key={dynamicKey} data={chartData} options={chartOptions} />
       </div>

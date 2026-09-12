@@ -288,12 +288,51 @@ def predict(data: PredictRequest):
     # Assign risk level
     level = "High" if score >= 70.0 else ("Moderate" if score >= 40.0 else "Low")
 
-    # Build ranked feature importance list for Chart.js
-    ranked_factors = [
-        {"name": FEATURE_DESCRIPTIONS[FEATURE_NAMES[i]], "feature": FEATURE_NAMES[i], "importance": round(importances[i], 3)}
-        for i in range(len(FEATURE_NAMES))
-    ]
-    ranked_factors.sort(key=lambda x: x["importance"], reverse=True)
+    # Build dynamically responsive feature importance ranking reflecting the point's terrain and weather
+    temp_val = data.temperature_C if data.temperature_C is not None else data.temperature
+    precip_val = data.precip_mm if data.precip_mm is not None else data.rainfall
+    snowfall_val = data.snowfall_mm if data.snowfall_mm is not None else 0.0
+    snow_depth_val = data.snow_depth_mm if data.snow_depth_mm is not None else (data.snow_depth * 10.0)
+    wind_val = data.wind_speed
+    rh_val = data.relative_humidity if data.relative_humidity is not None else 65.0
+    pres_val = data.pressure_hPa if data.pressure_hPa is not None else 1013.25
+
+    if data.slope_angle <= 0.0:
+        ranked_factors = [
+            {"name": "Horizontal / Water Surface", "feature": "water_body", "importance": 0.95},
+            {"name": "Zero Shear Inclination", "feature": "slope_angle", "importance": 0.05}
+        ]
+    else:
+        # Dynamic sensitivities for the current point's parameters
+        sens = {
+            'temperature_C': min(32.0, max(3.0, abs(temp_val) * 1.1 + (10.0 if temp_val > 15 else 4.0))),
+            'dewpoint_C': 4.0,
+            'precip_mm': min(35.0, max(2.0, precip_val * 2.5 + (10.0 if precip_val > 1 else 2.0))),
+            'snowfall_mm': min(35.0, max(2.0, snowfall_val * 3.0 + 3.0)),
+            'snow_depth_mm': min(38.0, max(3.0, (snow_depth_val / 30.0) + (15.0 if snow_depth_val > 50 else 3.0))),
+            'pressure_hPa': min(18.0, max(2.0, abs(pres_val - 1013.25) * 0.15 + 3.0)),
+            'wind_speed': min(35.0, max(3.0, wind_val * 0.9 + (10.0 if wind_val > 15 else 3.0))),
+            'relative_humidity': min(16.0, max(2.0, (rh_val / 100.0) * 12.0 + 2.0)),
+            'month': 3.0,
+            'slope_angle': min(38.0, max(2.0, (1.0 - abs(data.slope_angle - 38.0) / 25.0) * 35.0))
+        }
+
+        # Blend with model baseline weights
+        base_dict = {FEATURE_NAMES[i]: importances[i] for i in range(len(FEATURE_NAMES))}
+        base_dict['slope_angle'] = 0.25
+        combined_scores = {k: sens[k] * (0.4 + base_dict.get(k, 0.1)) for k in sens}
+        tot_score = sum(combined_scores.values()) or 1.0
+
+        all_desc = {
+            **FEATURE_DESCRIPTIONS,
+            'slope_angle': 'Slope Angle Criticality'
+        }
+
+        ranked_factors = [
+            {"name": all_desc.get(k, k), "feature": k, "importance": round(v / tot_score, 3)}
+            for k, v in combined_scores.items()
+        ]
+        ranked_factors.sort(key=lambda x: x["importance"], reverse=True)
 
     # Physical explanation
     if data.slope_angle <= 0.0:
