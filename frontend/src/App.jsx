@@ -210,7 +210,7 @@ export default function App() {
       <div className="w-6 h-6 rounded-lg bg-terracotta-500/20 text-terracotta-400 flex items-center justify-center">
         <Mountain className="w-3.5 h-3.5" />
       </div>
-      <span className="font-heading font-bold text-earth-100 text-base tracking-wide">Terraform</span>
+      <span className="font-heading font-bold text-earth-100 text-base tracking-wide">HimVigil</span>
     </div>
     <p className="text-xs text-earth-400 font-medium text-center md:text-right">HackRIT Hackathon 2026</p>
   </div>

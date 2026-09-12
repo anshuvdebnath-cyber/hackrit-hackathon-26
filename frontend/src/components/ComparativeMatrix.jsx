@@ -2,6 +2,43 @@ import React, { useState } from 'react';
 import { ShieldAlert, ArrowUpDown, Filter, Search, ExternalLink, Mountain, Wind, Thermometer, Droplets } from 'lucide-react';
 import { getRiskColor, getRiskBgClass } from '../services/riskService';
 
+export function getVillageCategory(v) {
+  const avalScore = v.avalancheRisk?.score ?? 0;
+  const floodScore = v.floodRisk?.score ?? 0;
+  const avalLevel = (v.avalancheRisk?.level || '').toUpperCase();
+  const floodLevel = (v.floodRisk?.level || '').toUpperCase();
+  const tier = (v.hazardTier || '').toUpperCase();
+  const dgre = (v.dgReClassification || '').toUpperCase();
+
+  // 1. High Risk Category: DGRE Red Zone, High Hazard Tier, or High dynamic score/level
+  if (
+    tier.includes('HIGH') ||
+    dgre.includes('RED') ||
+    avalLevel === 'HIGH' ||
+    floodLevel === 'HIGH' ||
+    avalScore >= 70 ||
+    floodScore >= 70
+  ) {
+    return 'HIGH';
+  }
+
+  // 2. Moderate / Medium Risk Category: DGRE Yellow Zone, Medium Hazard Tier, or Moderate dynamic score/level
+  if (
+    tier.includes('MEDIUM') ||
+    tier.includes('MODERATE') ||
+    dgre.includes('YELLOW') ||
+    avalLevel === 'MODERATE' ||
+    floodLevel === 'MODERATE' ||
+    avalScore >= 35 ||
+    floodScore >= 35
+  ) {
+    return 'MODERATE';
+  }
+
+  // 3. Low Risk Category
+  return 'LOW';
+}
+
 export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchToMap }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState('ALL');
@@ -15,8 +52,11 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
       v.region.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.district?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    if (filterLevel === 'ALL') return matchesSearch;
-    return matchesSearch && v.avalancheRisk?.level?.toUpperCase() === filterLevel;
+    if (!matchesSearch) return false;
+    if (filterLevel === 'ALL') return true;
+
+    const cat = getVillageCategory(v);
+    return cat === filterLevel;
   });
 
   // Sort
@@ -85,20 +125,38 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
           </div>
 
           {/* Level Filter Tabs */}
-          <div className="flex rounded-lg bg-earth-200/80 p-1 text-xs sm:text-sm font-semibold font-heading">
-            {['ALL', 'HIGH', 'MODERATE', 'LOW'].map((lvl) => (
-              <button
-                key={lvl}
-                onClick={() => setFilterLevel(lvl)}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  filterLevel === lvl
-                    ? 'bg-white text-earth-900 shadow-sm font-bold'
-                    : 'text-earth-600 hover:text-earth-900'
-                }`}
-              >
-                {lvl}
-              </button>
-            ))}
+          <div className="flex rounded-lg bg-earth-200/80 p-1 text-xs sm:text-sm font-semibold font-heading flex-wrap gap-1">
+            {[
+              { id: 'ALL', label: 'All' },
+              { id: 'HIGH', label: 'High Risk' },
+              { id: 'MODERATE', label: 'Moderate' },
+              { id: 'LOW', label: 'Low' }
+            ].map(({ id, label }) => {
+              const count = id === 'ALL'
+                ? villages.length
+                : villages.filter(v => getVillageCategory(v) === id).length;
+
+              return (
+                <button
+                  key={id}
+                  onClick={() => setFilterLevel(id)}
+                  className={`px-3 py-1 rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                    filterLevel === id
+                      ? 'bg-white text-earth-900 shadow-sm font-bold'
+                      : 'text-earth-600 hover:text-earth-900'
+                  }`}
+                >
+                  <span>{label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+                    filterLevel === id
+                      ? 'bg-earth-100 text-earth-900 border border-earth-300'
+                      : 'bg-earth-300/60 text-earth-700'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
         </div>
@@ -160,8 +218,19 @@ export default function ComparativeMatrix({ villages, onSelectVillage, onSwitchT
                     <div className="font-bold text-earth-900 text-sm sm:text-base font-heading">
                       {village.name}
                     </div>
-                    <div className="text-xs text-earth-600 font-medium">
-                      {village.region} · {village.district}
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs text-earth-600 font-medium">
+                        {village.region} · {village.district}
+                      </span>
+                      {village.dgReClassification && (
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                          village.dgReClassification.includes('Red')
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : 'bg-amber-100 text-amber-800 border border-amber-200'
+                        }`}>
+                          {village.dgReClassification}
+                        </span>
+                      )}
                     </div>
                   </td>
 

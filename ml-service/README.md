@@ -1,4 +1,4 @@
-# Terra Watch — ML Service (FastAPI + XGBoost)
+# HimVigil — ML Service (FastAPI + XGBoost)
 
 This folder contains the **FastAPI ML Microservice** for Teammates A & B (Your brother).
 

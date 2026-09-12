@@ -108,14 +108,27 @@ export default function WeatherTerrainCards({ village, modelStatus }) {
           <h3 className="font-heading text-lg sm:text-xl font-bold text-earth-900 mt-0.5">
             Meteorological & DEM Parameters
           </h3>
-          {village.isCustom && (
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {village.isCustom ? (
               <span className="text-[11px] font-mono font-bold text-moss-800 bg-moss-100/90 px-2 py-0.5 rounded border border-moss-300 shadow-xs inline-flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-moss-600" />
                 <span>Custom Point Telemetry</span>
               </span>
-            </div>
-          )}
+            ) : (
+              <>
+                <span className="text-xs font-semibold text-earth-700">{village.fullName || village.name}</span>
+                {village.dgReClassification && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded shadow-xs ${
+                    village.dgReClassification.includes('Red')
+                      ? 'bg-red-100 text-red-700 border border-red-200'
+                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                  }`}>
+                    {village.dgReClassification} · {village.hazardTier}
+                  </span>
+                )}
+              </>
+            )}
+          </div>
         </div>
         <span className="text-xs text-earth-700 font-medium text-left sm:text-right">
           Source: Open-Meteo live
