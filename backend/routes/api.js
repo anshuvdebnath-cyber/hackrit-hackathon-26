@@ -10,8 +10,8 @@ const predictionCache = new Map();
 const CACHE_TTL_MS = 3 * 60 * 1000;
 
 /**
- * Hydrological Flash Flood / GLOF Risk Engine
- * Based on liquid volume inflow (rainfall + thermal snowmelt), terrain channeling, and marine exclusion.
+ * Flash Flood / GLOF Risk Engine
+ * Produces original predicted flood risk across land and hilly sectors, with marine exclusion for ocean points.
  */
 function calculateHydrologicalFloodRisk({
   rainfall = 0,
@@ -19,8 +19,7 @@ function calculateHydrologicalFloodRisk({
   snowDepth = 0,
   slopeAngle = 20,
   elevation = 1500,
-  isOcean = false,
-  isWaterBody = false
+  isOcean = false
 }) {
   // 1. Open ocean or sea level surface (elevation <= 0 or marine):
   // Terrestrial riverine and flash floods are physically non-applicable on the open sea.
@@ -32,48 +31,20 @@ function calculateHydrologicalFloodRisk({
     };
   }
 
-  // 2. Liquid Rain Inflow (Primary driver of flash flooding)
+  // 2. Original predicted Flash Flood / GLOF Risk formula
   const rain = Math.max(0, Number(rainfall) || 0);
-  let rainPoints = 0;
-  if (rain > 0) {
-    if (rain <= 15) {
-      rainPoints = rain * 1.2; // up to 18
-    } else if (rain <= 50) {
-      rainPoints = 18 + (rain - 15) * 1.1; // up to 56.5
-    } else {
-      rainPoints = 56.5 + Math.min(30, (rain - 50) * 0.6); // up to 86.5
-    }
-  }
-
-  // 3. Thermal Snowmelt (ONLY when snowpack exists AND temperature > 0 C):
-  // Warm weather on dry bare ground does NOT produce liquid flood runoff!
-  let meltPoints = 0;
   const temp = Number(temperature) || 0;
-  const snow = Math.max(0, Number(snowDepth) || 0);
-  if (snow > 5 && temp > 0) {
-    const snowFactor = Math.min(1.0, snow / 40.0);
-    const tempFactor = Math.min(1.0, temp / 18.0);
-    meltPoints = 20.0 * snowFactor * tempFactor;
-  }
-
-  // 4. Steep slope drainage funnel multiplier (only applies when liquid runoff exists):
-  let slopeMultiplier = 1.0;
-  if (slopeAngle >= 25 && slopeAngle <= 45) {
-    slopeMultiplier = 1.2;
-  } else if (slopeAngle < 8) {
-    slopeMultiplier = 0.85;
-  }
-
-  const combinedWaterInflow = (rainPoints + meltPoints) * slopeMultiplier;
-  const finalScore = Math.min(98, Math.max(5, Math.round(5.0 + combinedWaterInflow)));
-  const level = finalScore >= 70 ? 'High' : (finalScore >= 35 ? 'Moderate' : 'Low');
+  let floodRaw = rain * 2.2 + Math.max(0, temp * 1.8);
+  if (slopeAngle > 35) floodRaw *= 1.25;
+  const finalScore = Math.min(95, Math.max(10, Math.round(floodRaw + 10)));
+  const level = finalScore > 70 ? 'High' : (finalScore > 40 ? 'Moderate' : 'Low');
 
   return {
     score: finalScore,
     level,
     details: rain > 25
       ? `Heavy rainfall (${rain}mm) elevating mountain runoff risk.`
-      : (meltPoints > 8 ? `Thermal snowpack melt contributing to drainage volume.` : 'Normal stable drainage conditions.')
+      : (temp > 20 ? `High ambient thermal runoff contributing to drainage channels.` : 'Normal mountain drainage conditions.')
   };
 }
 
@@ -272,7 +243,7 @@ router.post('/predict-coordinate', async (req, res) => {
       slopeAngle = 0.0;
     }
 
-    // 3. Avalanche Risk Computation with Marine / Water Body Physical Guard
+    // 3. Avalanche Risk Computation with Marine Physical Guard
     let mlOutput = null;
     if (isOcean) {
       mlOutput = {
@@ -283,17 +254,6 @@ router.post('/predict-coordinate', async (req, res) => {
         ],
         explanation: 'Open Ocean / Marine Surface: Avalanche hazard is physically non-applicable over water.',
         source: 'marine-physics-guard'
-      };
-    } else if (isWaterBody && slopeAngle < 5.0) {
-      mlOutput = {
-        score: 0.0,
-        level: 'Low',
-        topFactors: [
-          { name: 'Water Body Surface', feature: 'water_body', importance: 0.90 },
-          { name: 'Zero Shear Inclination', feature: 'slope_angle', importance: 0.10 }
-        ],
-        explanation: 'Inland Water Body (Flat Surface): Avalanche release cannot occur on horizontal water surfaces.',
-        source: 'water-body-guard'
       };
     } else {
       mlOutput = await predictRisk({
@@ -313,15 +273,14 @@ router.post('/predict-coordinate', async (req, res) => {
       });
     }
 
-    // 4. Hydrological Flash Flood Risk (Physics-based water volume inflow)
+    // 4. Flash Flood Risk Engine
     const floodCalc = calculateHydrologicalFloodRisk({
       rainfall: weather.rainfall ?? weather.rainfall24h ?? 0,
       temperature: weather.temperature,
       snowDepth: weather.snow_depth ?? weather.snowDepth ?? 0,
       slopeAngle,
       elevation,
-      isOcean,
-      isWaterBody
+      isOcean
     });
 
     const normalizedWeather = {

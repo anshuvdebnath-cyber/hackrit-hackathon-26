@@ -309,34 +309,11 @@ export function calculateSimulatedRisk({
     };
   }
 
-  // 2. Hydrological flood risk calculation (Liquid rain + thermal snowmelt only if snow exists)
-  const floodScore = Math.min(95, Math.max(5, Math.round(
-    rainfall * 1.4 + (snow_depth > 5 && temperature > 0 ? Math.min(20, temperature * 0.6) : 0) + 5
-  )));
-  const floodLevel = floodScore >= 70 ? 'High' : (floodScore >= 35 ? 'Moderate' : 'Low');
-
-  // If no snow on the ground, avalanche release is physically negligible —
-  // but vary 3-14 with slope/wind/temp so every pin does NOT read flat 3.
-  if (snow_depth < 5) {
-    const slopeF = (slope_angle >= 30 && slope_angle <= 45) ? 4.0 : (slope_angle > 45 ? 2.0 : 1.0);
-    const windF = Math.min(3.0, Math.max(0, (wind_speed - 5) * 0.15));
-    const tempF = temperature > 2 ? 1.5 : (temperature < -12 ? 1.0 : 0.5);
-    const rainF = rainfall > 0 ? Math.min(2.5, rainfall * 0.2) : 0;
-    const snowF = Math.max(0, snow_depth * 0.4);
-    const score = Math.round(Math.min(14, Math.max(3, 3 + slopeF + windF + tempF + rainF + snowF)) * 10) / 10;
-    return {
-      avalancheRisk: { score, level: 'Low' },
-      floodRisk: { score: floodScore, level: floodLevel },
-      topFactors: [
-        { name: 'Slope Angle Criticality', importance: 0.40 },
-        { name: 'Wind Slab Potential', importance: 0.25 },
-        { name: 'Temperature Anomaly', importance: 0.15 },
-        { name: 'Snow Load Ratio', importance: 0.10 },
-        { name: 'Rainfall Destabilization', importance: 0.10 }
-      ],
-      explanation: `Negligible avalanche hazard: Ground is clear of snowpack (${snow_depth}cm). Score ${score}/100 reflects terrain predisposition only (slope ${slope_angle}°).`
-    };
-  }
+  // 2. Original predicted Flash Flood / GLOF risk calculation
+  let floodRaw = rainfall * 1.8 + Math.max(0, temperature * 2.2);
+  if (slope_angle > 35) floodRaw *= 1.2;
+  const floodScore = Math.min(98, Math.max(10, parseFloat(floodRaw.toFixed(1))));
+  const floodLevel = floodScore > 70 ? 'High' : floodScore > 40 ? 'Moderate' : 'Low';
 
   let slopeScore = 20;
   if (slope_angle >= 25 && slope_angle <= 45) {

@@ -322,10 +322,8 @@ async function getTerrainSlope(lat, lng) {
     const [c, n, e] = elev;
     const centerElev = Math.round(c * 10) / 10;
 
-    // Check if open ocean / sea level (elev <= 0m or within 2m with near-zero gradient)
-    const isOcean = centerElev <= 0 || (centerElev <= 2 && Math.abs(n - c) < 0.25 && Math.abs(e - c) < 0.25);
-    // Check if flat inland water surface (e.g. Pangong Tso or high altitude lake where all points match)
-    const isFlatWater = Math.abs(n - c) < 0.15 && Math.abs(e - c) < 0.15;
+    const isLikelyMarineCoord = (lat < 24 && (lng < 73 || lng > 88)) || lat < 8;
+    const isOcean = centerElev <= 0 || (centerElev <= 2 && isLikelyMarineCoord);
 
     if (isOcean) {
       return {
@@ -337,16 +335,6 @@ async function getTerrainSlope(lat, lng) {
       };
     }
 
-    if (isFlatWater) {
-      return {
-        slopeAngle: 0.0,
-        elevation: centerElev,
-        isOcean: false,
-        isWaterBody: true,
-        source: 'flat-water-dem'
-      };
-    }
-
     const latRad = (Number(lat) * Math.PI) / 180;
     const mPerDegLat = 111320;
     const mPerDegLng = 111320 * Math.max(0.2, Math.cos(latRad));
@@ -355,8 +343,11 @@ async function getTerrainSlope(lat, lng) {
     const slopeRad = Math.atan(Math.sqrt(gradN * gradN + gradE * gradE));
     const slopeDeg = (slopeRad * 180) / Math.PI;
 
+    // Mountainous and hilly terrain: preserve realistic slope
+    const finalSlope = slopeDeg > 2 ? Math.min(65, Math.round(slopeDeg * 10) / 10) : fallbackSlope();
+
     return {
-      slopeAngle: clamp(slopeDeg),
+      slopeAngle: finalSlope,
       elevation: centerElev,
       isOcean: false,
       isWaterBody: false,

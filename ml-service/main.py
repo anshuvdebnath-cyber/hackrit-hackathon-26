@@ -237,23 +237,26 @@ def predict(data: PredictRequest):
                 importances = [1.0 / len(FEATURE_NAMES)] * len(FEATURE_NAMES)
 
             # Terrain & Physics Synthesis:
-            # 1. If slope angle is flat / horizontal (< 5.0 deg) e.g. lakes, ocean, or plains:
-            # Avalanches require gravitational shear (tau = rho * g * h * sin(theta)); at theta < 5 deg, release is physically impossible.
+            # 1. If slope angle is flat / horizontal (<= 0 deg) e.g. ocean or water surface:
             if data.slope_angle <= 0.0:
                 score = 0.0
-            elif data.slope_angle < 5.0:
-                score = round(float(np.clip((data.slope_angle / 5.0) * 3.0, 0.0, 4.0)), 1)
-            elif data.snow_depth < 5.0:
-                # 2. If snowpack is negligible (< 5cm), slab release is physically minimal.
-                score = round(float(np.clip(3.0 + (data.slope_angle / 45.0) * 4.0 + (raw_prediction * 25.0), 3.0, 14.0)), 1)
             else:
-                # 3. Calibrated ML probability modulated by DEM slope angle (30°-45° prime zone)
-                base_score = 10.0 + (raw_prediction ** 0.5) * 110.0
-                slope_mult = 1.15 if (32.0 <= data.slope_angle <= 45.0) else (1.0 if (26.0 <= data.slope_angle <= 50.0) else 0.82)
-                
-                # Physical wind slab loading bonus for high alpine winds (>40 km/h) transporting snow onto slopes
-                wind_slab_bonus = min(18.0, max(0.0, (data.wind_speed - 40.0) * 0.12)) if (data.snow_depth >= 15.0 and data.slope_angle >= 20.0) else 0.0
-                score = round(float(np.clip((base_score * slope_mult) + wind_slab_bonus, 8.0, 99.0)), 1)
+                # Terrain baseline calculation (produces original predicted 30s-60s in steep mountain terrain)
+                slope_score = max(20.0, 95.0 - abs(data.slope_angle - 38.0) * 4.5) if (25 <= data.slope_angle <= 45) else 25.0
+                snow_score = min(100.0, (data.snow_depth / 60.0) * 85.0)
+                wind_score = min(100.0, (data.wind_speed / 40.0) * 85.0)
+                temp_score = min(100.0, 50.0 + data.temperature * 6.5) if data.temperature > 0 else min(85.0, 45.0 + abs(data.temperature + 8.0) * 3.0)
+                rain_score = min(100.0, 35.0 + data.rainfall * 2.5) if data.rainfall > 0 else 0.0
+                raw_terrain = (slope_score * 0.28) + (snow_score * 0.32) + (wind_score * 0.22) + (temp_score * 0.10) + (rain_score * 0.08)
+
+                if data.snow_depth >= 5.0:
+                    base_score = 10.0 + (raw_prediction ** 0.5) * 110.0
+                    slope_mult = 1.15 if (32.0 <= data.slope_angle <= 45.0) else (1.0 if (26.0 <= data.slope_angle <= 50.0) else 0.82)
+                    wind_slab_bonus = min(18.0, max(0.0, (data.wind_speed - 40.0) * 0.12)) if (data.snow_depth >= 15.0 and data.slope_angle >= 20.0) else 0.0
+                    score = round(float(np.clip((base_score * slope_mult) + wind_slab_bonus, 8.0, 99.0)), 1)
+                else:
+                    # Ground snowpack is light, terrain and atmospheric factors preserve original predicted baseline
+                    score = round(float(np.clip(raw_terrain, 15.0, 65.0)), 1)
 
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Model inference failed: {str(err)}")
@@ -297,12 +300,12 @@ def predict(data: PredictRequest):
         explanation = "Non-applicable hazard: Horizontal ground / water surface (slope: 0°). Avalanche release cannot occur."
     elif data.slope_angle < 5.0:
         explanation = f"Minimal hazard: Flat terrain (slope: {data.slope_angle}°). Insufficient gravitational shear stress for slab release."
-    elif data.snow_depth < 5.0:
-        explanation = f"Negligible avalanche hazard: Ground is clear of snowpack ({data.snow_depth}cm). Slope is currently stable."
     elif level == "High":
         explanation = f"Critical hazard alert: {ranked_factors[0]['name']} is primary driver. Slope at {data.slope_angle}° falls in acute shear zone."
     elif level == "Moderate":
         explanation = f"Moderate instability: {ranked_factors[0]['name']} elevated under current weather. Caution advised along steep gullies."
+    elif data.snow_depth < 5.0:
+        explanation = f"Stable terrain conditions: Ground snowpack is light ({data.snow_depth}cm). Normal precautions advised."
     else:
         explanation = "Stable snowpack conditions under current atmospheric and terrain telemetry."
 
