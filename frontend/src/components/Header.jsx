@@ -28,7 +28,7 @@ export default function Header({
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
               <span className="font-heading text-lg sm:text-xl font-extrabold tracking-tight text-earth-50">
-                Terraform
+                HimVigil
               </span>
             </div>
           </div>

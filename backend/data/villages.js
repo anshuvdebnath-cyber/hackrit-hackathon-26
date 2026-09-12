@@ -1,5 +1,5 @@
 /**
- * Terraform - Verified Himalayan Risk Zones Registry
+ * HimVigil - Verified Himalayan Risk Zones Registry
  * Ground-truth verified with SASE/DGRE (Defence Geoinformatics Research Establishment),
  * Geological Survey of India (GSI), and the HiAVAL Historical Avalanche Database.
  */

@@ -1,15 +1,15 @@
-# 🏔️ Terraform: Real-Time Geophysical Avalanche & Flash Flood Intelligence Platform
+# 🏔️ HimVigil: Real-Time Geophysical Avalanche & Flash Flood Intelligence Platform
 
-> **Next-Generation Planetary Threat Intelligence for the High-Altitude Himalayas**  
+> **A community-focused hazard index and offline-ready alerting prototype for Himalayan avalanches, flash floods, and GLOF risk awareness.**  
 > *Built for HackRIT Hackathon 2026*
 
 ---
 
 ## 1. 📖 Definition
 
-**Terraform** is an AI-powered geophysical intelligence and early-warning web platform engineered to predict, monitor, and explain real-time **Avalanche Release Probability** and **Flash Flood / Glacial Lake Outburst Flood (GLOF) Hazards** across mountainous terrains, with a primary focus on the Indian Himalayan Region (Himachal Pradesh, Jammu & Kashmir, Ladakh, and Uttarakhand).
+**HimVigil** is an AI-powered geophysical intelligence and early-warning web platform engineered to predict, monitor, and explain real-time **Avalanche Release Probability** and **Flash Flood / Glacial Lake Outburst Flood (GLOF) Hazards** across mountainous terrains, with a primary focus on the Indian Himalayan Region (Himachal Pradesh, Jammu & Kashmir, Ladakh, and Uttarakhand).
 
-By fusing live satellite meteorological telemetry, high-resolution Digital Elevation Models (DEM), and a trained **XGBoost machine learning model**, Terraform transforms complex physical weather and terrain data into intuitive, actionable risk indices ($0 - 100$) and Explainable AI (XAI) diagnostics for any monitored village or arbitrary point clicked on the globe.
+By fusing live satellite meteorological telemetry, high-resolution Digital Elevation Models (DEM), and a trained **XGBoost machine learning model**, HimVigil transforms complex physical weather and terrain data into intuitive, actionable risk indices ($0 - 100$) and Explainable AI (XAI) diagnostics for any monitored village or arbitrary point clicked on the globe.
 
 ---
 
@@ -22,7 +22,7 @@ High-relief alpine ecosystems are among the most volatile environments on Earth.
 * Traditional monitoring relies on sparsely distributed manual observation huts, delayed radio bulletins, and broad regional alerts that lack hyper-local precision.
 
 ### **Our Vision**
-The vision of Terraform is to **democratize high-altitude planetary safety**. We replace delayed, generalized weather advisories with:
+The vision of HimVigil is to **democratize high-altitude planetary safety**. We replace delayed, generalized weather advisories with:
 1. **Hyper-Local Point Telemetry**: Allowing disaster teams and local residents to click **any geographic coordinate** on the map to evaluate localized terrain steepness, elevation, and atmospheric threat levels.
 2. **Transparent Explainability (XAI)**: Moving beyond "black-box" predictions by presenting exact percentage contributions for every hazard trigger (e.g., whether a risk score of 78 is driven by 24h fresh snowfall, wind slab drift, or critical shear incline).
 3. **Proactive Simulation**: Enabling emergency planners to run "What-If" scenarios before storms hit to stress-test evacuation routes and village safety zones.
@@ -31,7 +31,7 @@ The vision of Terraform is to **democratize high-altitude planetary safety**. We
 
 ## 3. 👥 Target Users
 
-| User Group | How Terraform Serves Them |
+| User Group | How HimVigil Serves Them |
 | :--- | :--- |
 | **Disaster Management Authorities (NDMA / SDMA)** | Monitors multiple vulnerable villages simultaneously via the **Multi-Village Comparative Matrix** to allocate rescue personnel and issue advance evacuation alerts. |
 | **Border & Mountain Infrastructure Agencies (BRO / Military Outposts)** | Evaluates slope stability along strategic high-altitude highways (e.g., Manali-Leh, Zojila Pass) to preempt road closures and prevent transit disasters. |
@@ -43,7 +43,7 @@ The vision of Terraform is to **democratize high-altitude planetary safety**. We
 
 ## 4. 🛰️ What Stuffs Does Our API Provide Us? (Open-Meteo API Integration)
 
-Terraform leverages **Open-Meteo's Open-Access Satellite & Forecast APIs** without requiring proprietary API keys, enabling high availability and zero rate-limit friction. Our backend queries two major API endpoints:
+HimVigil leverages **Open-Meteo's Open-Access Satellite & Forecast APIs** without requiring proprietary API keys, enabling high availability and zero rate-limit friction. Our backend queries two major API endpoints:
 
 ### **A. Open-Meteo Weather Forecast & Atmospheric API**
 For any requested latitude and longitude, the API delivers live hourly and 24-hour accumulated atmospheric observations:
@@ -57,7 +57,7 @@ For any requested latitude and longitude, the API delivers live hourly and 24-ho
 * **`snow_depth`**: Estimated total snowpack thickness on the ground ($\text{cm}$).
 
 ### **B. Open-Meteo Elevation & DEM Grid API**
-Rather than simply looking up a static elevation number, Terraform uses the Elevation API in a unique **3-point spatial triangle** ($c, n, e$):
+Rather than simply looking up a static elevation number, HimVigil uses the Elevation API in a unique **3-point spatial triangle** ($c, n, e$):
 * Queries the center point $(lat, lng)$, a point 500m north $(lat + 0.0045^\circ, lng)$, and a point 500m east $(lat, lng + 0.0045^\circ)$.
 * Provides real-time elevation based on the **Copernicus DEM GLO-30 / GLO-90** and **NASA SRTM** grids.
 * Enables dynamic calculation of **local slope incline angle**, **directional gradients**, and **vertical cell relief ($\Delta z$)**.
@@ -103,11 +103,9 @@ Every coordinate is mapped into the following vector:
 
 ---
 
-## 6. 🏗️ Complete Website Process Architecture in Detail
-
 ## 6. 🏗️ Website Process Architecture (Simplified & Intuitive)
 
-Understanding how Terraform works is simple. Every time you click a point on the map or select a village, data flows through **4 straightforward steps**:
+Understanding how HimVigil works is simple. Every time you click a point on the map or select a village, data flows through **4 straightforward steps**:
 
 ```
  [User Clicks Map]
@@ -196,19 +194,18 @@ Understanding how Terraform works is simple. Every time you click a point on the
 * **What It Is**: A curated historical catalog of **746+ avalanche occurrences** across High-Mountain Asia (Western Himalayas, Karakoram, and Hindu Kush) covering winter seasons.
 * **Why We Used It**: Avalanches cannot be ethically or safely simulated in real life; empirical training data must come from real-world documented events. HiAVALDB provides verified ground-truth historical releases with precise dates and coordinates.
 
-### **2. ECMWF ERA5 Atmospheric Reanalysis**
+### **2. ECMWF ERA5 Atmospheric Reanalysis (Collected via Google Earth Engine)**
 * **What It Is**: The European Centre for Medium-Range Weather Forecasts' flagship climate reanalysis, providing global hourly atmospheric variables at high vertical resolution.
-* **Why We Used It**: Because weather stations in the Himalayas are sparse, historical avalanche events in HiAVALDB were joined with ERA5 reanalysis data at the exact date and coordinate of each release. This gave our model access to the exact historical air temperature, snowpack depth, fresh snowfall, surface pressure, and ridge winds present during every historical avalanche.
+* **How It Was Collected**: Extracted and compiled using the **Google Earth Engine (GEE)** Python API, querying ECMWF ERA5 daily atmospheric and surface collections for the exact temporal timestamps and spatial coordinates of each documented HiAVALDB release event.
+* **Why We Used It**: Because physical automated weather stations in high-altitude Himalayan ranges are sparse, Google Earth Engine enabled automated extraction of historical surface temperature, dew point, total precipitation, snowfall, snowpack depth, barometric pressure, wind velocity, and relative humidity present during every historical avalanche.
 
-### **3. Global Digital Elevation Grids (Copernicus 30m / ALOS PALSAR / SRTM)**
-* **What It Is**: Satellite radar and optical elevation models providing surface topography at 12.5m, 30m, and 90m horizontal resolution.
-* **Why We Used It**: Slope incline is the single greatest physical prerequisite for avalanche release. These grids allow Terraform to derive the true gravitational shear stress on any slope on Earth.
+*(Note: While Digital Elevation Models like Copernicus 30m and SRTM are queried dynamically at runtime via Open-Meteo for live interactive map point elevation and slope calculations, the tabular XGBoost machine learning model was trained strictly on the empirical HiAVALDB-ERA5 meteorological feature set).*
 
 ---
 
-### **4. Ground-Truth Verified Risk Zones (Actual Real-World Himalayan Data)**
+### **3. Ground-Truth Verified Risk Zones (Actual Real-World Himalayan Data)**
 
-Rather than using fabricated or hypothetical coordinates, Terraform benchmarks its model against **10 real-world high-altitude Himalayan zones** audited against classification frameworks from the **Defence Geoinformatics Research Establishment (DGRE / formerly SASE - Snow and Avalanche Study Establishment)**, the **Geological Survey of India (GSI)**, and the **HiAVALDB catalog**.
+Rather than using fabricated or hypothetical coordinates, HimVigil benchmarks its model against **10 real-world high-altitude Himalayan zones** audited against classification frameworks from the **Defence Geoinformatics Research Establishment (DGRE / formerly SASE - Snow and Avalanche Study Establishment)**, the **Geological Survey of India (GSI)**, and the **HiAVALDB catalog**.
 
 Under Indian defense and disaster standards:
 * **🔴 DGRE Red Zones (High Risk)**: Chronic avalanche release couloirs where slope angles fall directly in the critical slab shear band ($35^\circ \text{ to } 45^\circ$), with heavy leeward wind deposition and a documented history of fatal avalanches or structural burial.
@@ -262,7 +259,7 @@ Under Indian defense and disaster standards:
 
 ## 10. 🔭 Honest Future Scope of This Project
 
-While Terraform is currently a fully functional, live-telemetry platform, there are significant real-world extensions planned:
+While HimVigil is currently a fully functional, live-telemetry platform, there are significant real-world extensions planned:
 
 1. **Synthetic Aperture Radar (SAR) Satellite Ingestion (Sentinel-1)**:
    - Integrate European Space Agency (ESA) Sentinel-1 C-band SAR radar imagery to detect physical **snow slab creep, ground deformation, and internal shear cracks** through cloud cover and darkness before slab release occurs.
@@ -323,5 +320,5 @@ Open your browser and navigate to **`http://localhost:5173`**.
 ---
 
 ## 👥 Contributors & Acknowledgements
-* **Terraform Development Team**: Developed for **HackRIT Hackathon 2026**.
+* **HimVigil Development Team**: Developed for **HackRIT Hackathon 2026**.
 * **Data Acknowledgements**: Open-Meteo Weather API, Copernicus Digital Elevation Model, ECMWF ERA5 Reanalysis, and the HiAVAL Avalanche Database.

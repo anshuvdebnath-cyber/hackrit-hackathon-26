@@ -19,7 +19,7 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'Terra Watch Express Backend',
+    service: 'HimVigil Express Backend',
     port: PORT,
     timestamp: new Date().toISOString()
   });
@@ -41,7 +41,7 @@ app.use((err, req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`🌲 Terra Watch Backend running on http://localhost:${PORT}`);
+  console.log(`🌲 HimVigil Backend running on http://localhost:${PORT}`);
   console.log(`🏔️ API Endpoints:`);
   console.log(`   - GET  http://localhost:${PORT}/api/villages`);
   console.log(`   - GET  http://localhost:${PORT}/api/risk/:villageId`);
