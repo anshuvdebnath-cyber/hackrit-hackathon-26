@@ -105,49 +105,60 @@ Every coordinate is mapped into the following vector:
 
 ## 6. 🏗️ Complete Website Process Architecture in Detail
 
+## 6. 🏗️ Website Process Architecture (Simplified & Intuitive)
+
+Understanding how Terraform works is simple. Every time you click a point on the map or select a village, data flows through **4 straightforward steps**:
+
 ```
-                                  USER INTERACTION
-           [Clicks Custom Point on Map]  OR  [Selects Village]  OR  [What-If Sandbox]
-                                         │
-                                         ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   FRONTEND (React 18)                                  │
-│ • Captures (lat, lng) or slider parameters                                             │
-│ • Shows loading pulse banner ("Connecting to XGBoost Model & Telemetry...")            │
-│ • Calls Node.js Backend API: POST http://localhost:5000/api/predict-coordinate         │
-└────────────────────────────────────────┬───────────────────────────────────────────────┘
-                                         │
-                                         ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                BACKEND (Node.js / Express)                             │
-│ 1. 3-Point Elevation Query: Queries Open-Meteo DEM API at (lat, lng), (+500m N), (+500m E)│
-│    -> Computes: Slope Angle (deg), Relief Delta Δz (m), and DEM Tile ID (e.g. N32E077)  │
-│ 2. Live Weather Query: Queries Open-Meteo Satellite API for 9 atmospheric parameters   │
-│ 3. Physical Marine & Water Guard: Checks if z <= 0m or slope <= 0°                     │
-│    -> If water: Isolates avalanche risk to 0.0 without running model                   │
-│ 4. Hydrological Flood Engine: Calculates GLOF / Flash Flood Score from rain + melt     │
-│ 5. Dispatches HTTP POST to Python ML Service: http://localhost:8000/predict             │
-└────────────────────────────────────────┬───────────────────────────────────────────────┘
-                                         │
-                                         ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                             FASTAPI ML SERVICE (Python 3.10+)                          │
-│ • Normalizes feature vector and clips boundary extremes                                │
-│ • Runs xgb_avalanche_final.json decision trees                                         │
-│ • Computes per-sample TreeSHAP attribution & feature percentage weights                │
-│ • Synthesizes physical terrain rules and generates plain-English explanation           │
-│ • Returns JSON payload back to Node.js Backend                                         │
-└────────────────────────────────────────┬───────────────────────────────────────────────┘
-                                         │
-                                         ▼
-┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                              FRONTEND DATA RENDERING & DISPLAY                         │
-│ • Circular Risk Gauges: Renders Avalanche Score and Flash Flood Score with needle pins │
-│ • Horizontal Bar Chart: Smoothly morphs factor weights (750ms easeOutQuart transition) │
-│ • DEM Grid Card: Displays live dataset (e.g. Copernicus 30m GLO · Tile N32E077)       │
-│ • Interactive Map: Moves camera and drops high-contrast pinned coordinates             │
-└────────────────────────────────────────────────────────────────────────────────────────┘
+ [User Clicks Map]
+        │
+        ▼
+ 1. FRONTEND (React 18)
+    Captures your GPS pin (lat, lng) and asks the backend for an evaluation.
+        │
+        ▼
+ 2. BACKEND ORCHESTRATOR (Node.js / Express)
+    ├── 🛰️ Calls Open-Meteo Satellite API for live weather (snow, wind, temperature, rain).
+    ├── 🏔️ Queries Copernicus Elevation Model to calculate terrain incline (slope in degrees).
+    └── 🌊 Runs hydrological calculation to estimate flash flood / GLOF risk.
+        │
+        ▼
+ 3. AI MICROSERVICE (Python FastAPI + XGBoost)
+    ├── 🧠 Feeds the live weather and terrain slope into our trained XGBoost model.
+    └── 📊 Calculates the Avalanche Risk Score (0-100) and finds which factors contributed most.
+        │
+        ▼
+ 4. LIVE DASHBOARD UPDATE (React + Leaflet + Chart.js)
+    The circular gauges animate, factor breakdown charts slide into place, and terrain cards update instantly!
 ```
+
+---
+
+### **How the 4 Steps Work in Plain English:**
+
+#### **Step 1: Point Selection (Frontend)**
+* **What happens**: You click anywhere in the Himalayas on our interactive Leaflet map, or pick a village from the dropdown, or tweak weather sliders in the What-If sandbox.
+* **What is sent**: The exact GPS coordinates `(latitude, longitude)`.
+
+#### **Step 2: Real-Time Data Fetching (Node.js Backend)**
+* **What happens**: The Node.js backend acts as the central coordinator:
+  1. It asks Open-Meteo for **live atmospheric conditions** (temperature, wind speed, fresh snowfall, total snowpack depth, rainfall, air pressure).
+  2. It samples altitude at the point and 500 meters away to **measure the real slope angle** of the mountain face.
+  3. It checks if the location is flat water or ocean (if yes, it safely locks avalanche risk to 0).
+  4. It computes **Flash Flood & GLOF risk** based on how much rain is falling and how fast snow is melting.
+
+#### **Step 3: Machine Learning Risk Scoring (Python FastAPI Service)**
+* **What happens**: The backend hands the weather numbers and slope angle over to our Python microservice.
+  1. The **XGBoost machine learning model** runs the numbers through its trained decision trees.
+  2. It generates an **Avalanche Hazard Score** between 0 and 100.
+  3. It uses **TreeSHAP explainability** to rank which triggers are most dangerous (e.g., *“32% from Fresh Snowfall, 26% from Steep Slope”*).
+  4. It writes a simple English diagnostic sentence explaining the danger.
+
+#### **Step 4: Live Visual Rendering (Frontend)**
+* **What you see**: The frontend receives the results and updates instantly:
+  * **Circular Gauges**: The needle smoothly animates to show both Avalanche and Flood scores.
+  * **Explainability Chart**: Horizontal bars smoothly morph using Chart.js to display the top hazard drivers.
+  * **Telemetry Cards**: Cards display the live temperature, wind speed, snow depth, and the exact DEM satellite grid tile (e.g., `Copernicus 30m GLO · Tile N32E077`).
 
 ---
 
