@@ -52,8 +52,11 @@ export default function ScenarioSimulator({ baseVillage }) {
   const { avalancheRisk, floodRisk, topFactors, explanation } = activeResult;
   const avalColor = getRiskColor(avalancheRisk.level);
 
+  const [activePreset, setActivePreset] = useState(null);
+
   // Preset Scenarios
   const applyPreset = (preset) => {
+    setActivePreset(preset);
     if (preset === 'blizzard') {
       setSnowDepth(45);
       setSlopeAngle(41);
@@ -82,6 +85,7 @@ export default function ScenarioSimulator({ baseVillage }) {
   };
 
   const handleReset = () => {
+    setActivePreset(null);
     setSnowDepth(baseVillage?.weather?.snowfall24h ?? 20);
     setSlopeAngle(baseVillage?.slopeAngle ?? 36);
     setWindSpeed(baseVillage?.weather?.windSpeed ?? 15);
@@ -93,7 +97,7 @@ export default function ScenarioSimulator({ baseVillage }) {
     <div className="bg-earth-50 rounded-2xl p-6 border border-earth-200 shadow-sm space-y-6">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-earth-200 pb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-earth-200/90 pb-4">
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2">
@@ -115,40 +119,66 @@ export default function ScenarioSimulator({ baseVillage }) {
           </p>
         </div>
 
-        {/* Presets and Reset */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs sm:text-sm font-bold text-earth-700 font-heading mr-1">Presets:</span>
-          <button
-            onClick={() => applyPreset('blizzard')}
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
-          >
-            Blizzard
-          </button>
-          <button
-            onClick={() => applyPreset('rainOnSnow')}
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
-          >
-            Rain-on-Snow
-          </button>
-          <button
-            onClick={() => applyPreset('deepFreeze')}
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
-          >
-            Deep Freeze
-          </button>
-          <button
-            onClick={() => applyPreset('stable')}
-            className="px-3 py-1.5 rounded-lg bg-white hover:bg-earth-100 border border-earth-300 text-xs sm:text-sm font-semibold text-earth-800 shadow-sm transition cursor-pointer"
-          >
-            Stable
-          </button>
-          <button
-            onClick={handleReset}
-            className="p-2 rounded-lg bg-earth-200/80 hover:bg-earth-300 text-earth-700 transition cursor-pointer"
-            title="Reset to default"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+        {/* Presets and Reset - Unified, Perfectly Aligned Toolbar */}
+        <div className="flex items-center gap-2 flex-shrink-0 self-start lg:self-center">
+          <div className="inline-flex items-center bg-white p-1 rounded-xl border border-earth-300/80 shadow-sm">
+            <span className="text-sm sm:text-base font-black text-earth-950 font-heading tracking-tight px-3 select-none">
+              Presets:
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => applyPreset('blizzard')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  activePreset === 'blizzard'
+                    ? 'bg-terracotta-500 text-white shadow-sm font-bold'
+                    : 'text-earth-700 hover:bg-earth-100 hover:text-earth-900'
+                }`}
+              >
+                Blizzard
+              </button>
+              <button
+                onClick={() => applyPreset('rainOnSnow')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  activePreset === 'rainOnSnow'
+                    ? 'bg-terracotta-500 text-white shadow-sm font-bold'
+                    : 'text-earth-700 hover:bg-earth-100 hover:text-earth-900'
+                }`}
+              >
+                Rain-on-Snow
+              </button>
+              <button
+                onClick={() => applyPreset('deepFreeze')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  activePreset === 'deepFreeze'
+                    ? 'bg-terracotta-500 text-white shadow-sm font-bold'
+                    : 'text-earth-700 hover:bg-earth-100 hover:text-earth-900'
+                }`}
+              >
+                Deep Freeze
+              </button>
+              <button
+                onClick={() => applyPreset('stable')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                  activePreset === 'stable'
+                    ? 'bg-terracotta-500 text-white shadow-sm font-bold'
+                    : 'text-earth-700 hover:bg-earth-100 hover:text-earth-900'
+                }`}
+              >
+                Stable
+              </button>
+            </div>
+
+            <div className="w-px h-5 bg-earth-200 mx-1.5" />
+
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-earth-600 hover:text-earth-900 hover:bg-earth-100 transition-all cursor-pointer"
+              title="Reset parameters to baseline"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-earth-500" />
+              <span className="font-heading hidden sm:inline">Reset</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -178,7 +208,10 @@ export default function ScenarioSimulator({ baseVillage }) {
               max="100"
               step="1"
               value={snowDepth}
-              onChange={(e) => setSnowDepth(Number(e.target.value))}
+              onChange={(e) => {
+                setSnowDepth(Number(e.target.value));
+                setActivePreset(null);
+              }}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
             <div className="flex justify-between text-xs text-earth-600 font-medium">
@@ -205,7 +238,10 @@ export default function ScenarioSimulator({ baseVillage }) {
               max="55"
               step="1"
               value={slopeAngle}
-              onChange={(e) => setSlopeAngle(Number(e.target.value))}
+              onChange={(e) => {
+                setSlopeAngle(Number(e.target.value));
+                setActivePreset(null);
+              }}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
             <div className="flex justify-between text-xs text-earth-600 font-medium">
@@ -232,7 +268,10 @@ export default function ScenarioSimulator({ baseVillage }) {
               max="70"
               step="1"
               value={windSpeed}
-              onChange={(e) => setWindSpeed(Number(e.target.value))}
+              onChange={(e) => {
+                setWindSpeed(Number(e.target.value));
+                setActivePreset(null);
+              }}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
             <div className="flex justify-between text-xs text-earth-600 font-medium">
@@ -259,7 +298,10 @@ export default function ScenarioSimulator({ baseVillage }) {
               max="15"
               step="1"
               value={temperature}
-              onChange={(e) => setTemperature(Number(e.target.value))}
+              onChange={(e) => {
+                setTemperature(Number(e.target.value));
+                setActivePreset(null);
+              }}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
             <div className="flex justify-between text-xs text-earth-600 font-medium">
@@ -286,7 +328,10 @@ export default function ScenarioSimulator({ baseVillage }) {
               max="50"
               step="1"
               value={rainfall}
-              onChange={(e) => setRainfall(Number(e.target.value))}
+              onChange={(e) => {
+                setRainfall(Number(e.target.value));
+                setActivePreset(null);
+              }}
               className="w-full accent-terracotta-500 cursor-pointer"
             />
             <div className="flex justify-between text-xs text-earth-600 font-medium">

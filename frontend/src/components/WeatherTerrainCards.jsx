@@ -10,8 +10,7 @@ import {
   History,
   AlertCircle,
   ShieldAlert,
-  Sparkles,
-  Cpu
+  Sparkles
 } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
 
@@ -47,6 +46,52 @@ export default function WeatherTerrainCards({ village, modelStatus }) {
   const isHighWind = wind >= 20;
   const isSnowLoading = snowFall24h >= 10 || snowPack >= 30;
 
+  // Dynamic DEM Grid Source resolving per-point coordinates
+  const getDemSourceInfo = () => {
+    if (!village.isCustom) {
+      return {
+        title: 'Historical Threat Activity',
+        value: `${hiAval} Recorded Events`,
+        desc: 'HiAVAL historical avalanche inventory'
+      };
+    }
+
+    const elev = Number(elevation) || 0;
+    const isOcean = !!village.isOcean || elev <= 0;
+    const latNum = village.lat != null ? Number(village.lat) : null;
+    const lngNum = village.lng != null ? Number(village.lng) : null;
+    const coordStr = latNum != null && lngNum != null ? `${latNum.toFixed(2)}°, ${lngNum.toFixed(2)}°` : '';
+
+    if (isOcean) {
+      return {
+        title: 'DEM Grid Source',
+        value: 'GEBCO Marine Grid',
+        desc: coordStr ? `0m Sea level datum · ${coordStr}` : '0m Sea level datum'
+      };
+    }
+    if (elev >= 3500 || slope >= 28) {
+      return {
+        title: 'DEM Grid Source',
+        value: 'ALOS PALSAR 12.5m DEM',
+        desc: coordStr ? `High-relief alpine mesh · ${coordStr}` : 'High-relief alpine mesh'
+      };
+    }
+    if (elev >= 1200) {
+      return {
+        title: 'DEM Grid Source',
+        value: 'Copernicus 30m GLO DEM',
+        desc: coordStr ? `Sub-km terrain grid · ${coordStr}` : 'Sub-km terrain grid'
+      };
+    }
+    return {
+      title: 'DEM Grid Source',
+      value: 'SRTM 90m Elevation Grid',
+      desc: coordStr ? `Topographic elevation mesh · ${coordStr}` : 'Topographic elevation mesh'
+    };
+  };
+
+  const demInfo = getDemSourceInfo();
+
   return (
     <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-4">
       
@@ -59,18 +104,14 @@ export default function WeatherTerrainCards({ village, modelStatus }) {
           <h3 className="font-heading text-lg sm:text-xl font-bold text-earth-900 mt-0.5">
             Meteorological & DEM Parameters
           </h3>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-[11px] font-mono font-semibold text-earth-700 bg-white px-2 py-0.5 rounded border border-earth-200/90 shadow-xs inline-flex items-center gap-1">
-              <Cpu className="w-3 h-3 text-terracotta-600" />
-              <span>XGBoost Input Vector (9 Atmospheric & DEM Features)</span>
-            </span>
-            {village.isCustom && (
+          {village.isCustom && (
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
               <span className="text-[11px] font-mono font-bold text-moss-800 bg-moss-100/90 px-2 py-0.5 rounded border border-moss-300 shadow-xs inline-flex items-center gap-1">
                 <Sparkles className="w-3 h-3 text-moss-600" />
                 <span>Custom Point Telemetry</span>
               </span>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         <span className="text-xs text-earth-700 font-medium text-left sm:text-right">
           Source: Open-Meteo live
@@ -179,64 +220,64 @@ export default function WeatherTerrainCards({ village, modelStatus }) {
       </div>
 
       {/* Terrain DEM Parameters Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-stretch">
         
         {/* Slope Angle Card with Criticality indicator */}
-        <div className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+        <div className={`p-3 sm:p-3.5 rounded-xl border flex items-start gap-2.5 h-full ${
           isCriticalSlope 
             ? 'bg-clay-50/80 border-clay-300 text-clay-950' 
             : 'bg-white border-earth-200 text-earth-900'
         }`}>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${
             isCriticalSlope ? 'bg-clay-500 text-white' : 'bg-earth-100 text-earth-800'
           }`}>
             <Mountain className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider opacity-85">
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase font-bold tracking-wider opacity-85 leading-normal">
               Incline Gradient
             </div>
-            <div className="text-base sm:text-lg font-heading font-extrabold">
+            <div className="text-sm sm:text-base font-heading font-extrabold leading-snug mt-0.5">
               {slope}° Slope
             </div>
-            <div className="text-[11px] font-medium opacity-90 leading-tight">
+            <div className="text-[11px] font-medium opacity-90 leading-tight mt-0.5">
               {isCriticalSlope ? 'Within peak shear zone (30°-45°)' : 'Outside prime release zone'}
             </div>
           </div>
         </div>
 
         {/* Elevation & Aspect */}
-        <div className="bg-white p-3 rounded-xl border border-earth-200 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0">
+        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-earth-200 flex items-start gap-2.5 h-full">
+          <div className="w-8 h-8 rounded-lg bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Compass className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-earth-600">
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-earth-600 leading-normal">
               Elevation & Aspect
             </div>
-            <div className="text-base sm:text-lg font-heading font-extrabold text-earth-950">
+            <div className="text-sm sm:text-base font-heading font-extrabold text-earth-950 leading-snug mt-0.5">
               {elevation}m · {aspect}
             </div>
-            <div className="text-[11px] font-medium text-earth-700 leading-tight">
-              {village.vegetation || 'Alpine Valley'}
+            <div className="text-[11px] font-medium text-earth-700 leading-tight mt-0.5">
+              {village.vegetation || ((elevation <= 0 || village.isOcean) ? 'Sea Surface' : elevation > 3500 ? 'Alpine Glacial / Permafrost' : elevation > 2500 ? 'Subalpine Conifer' : 'Valley Floor')}
             </div>
           </div>
         </div>
 
         {/* Avalanche Release History / DEM Grid Source */}
-        <div className="bg-white p-3 rounded-xl border border-earth-200 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0">
+        <div className="bg-white p-3 sm:p-3.5 rounded-xl border border-earth-200 flex items-start gap-2.5 h-full">
+          <div className="w-8 h-8 rounded-lg bg-earth-100 text-earth-800 flex items-center justify-center flex-shrink-0 mt-0.5">
             <ShieldAlert className="w-4 h-4" />
           </div>
-          <div>
-            <div className="text-[10px] uppercase font-bold tracking-wider text-earth-600">
-              {village.isCustom ? 'DEM Grid Source' : 'Historical Threat Activity'}
+          <div className="flex-1 min-w-0">
+            <div className="text-[10px] uppercase font-bold tracking-wider text-earth-600 leading-normal">
+              {demInfo.title}
             </div>
-            <div className="text-base sm:text-lg font-heading font-extrabold text-earth-950">
-              {village.isCustom ? (village.slopeSource || 'Open-Meteo DEM') : `${hiAval} Recorded Events`}
+            <div className="text-sm sm:text-base font-heading font-extrabold text-earth-950 leading-snug mt-0.5">
+              {demInfo.value}
             </div>
-            <div className="text-[11px] font-medium text-earth-700 leading-tight">
-              {village.isCustom ? 'Dynamic satellite elevation grid' : 'Historical avalanche path validation'}
+            <div className="text-[11px] font-medium text-earth-700 leading-tight mt-0.5">
+              {demInfo.desc}
             </div>
           </div>
         </div>

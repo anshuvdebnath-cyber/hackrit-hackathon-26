@@ -160,16 +160,16 @@ export default function App() {
 
                 {/* 2. Detailed Sector Telemetry & Explainability */}
                 {selectedVillage && (
-                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                  <section className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
                     
                     {/* Left Column: Risk Gauge & Environmental Telemetry (7 cols) */}
-                    <div className="lg:col-span-7 space-y-5 flex flex-col justify-between">
+                    <div className="lg:col-span-7 space-y-4 flex flex-col">
                       <RiskGauge village={selectedVillage} modelStatus={modelStatus} />
                       <WeatherTerrainCards village={selectedVillage} modelStatus={modelStatus} />
                     </div>
 
                     {/* Right Column: Model Explainability Chart.js (5 cols) */}
-                    <div className="lg:col-span-5 flex flex-col h-full">
+                    <div className="lg:col-span-5">
                       <FeatureImportanceChart
                         factors={selectedVillage.topFactors || []}
                         villageName={selectedVillage.name}
@@ -204,31 +204,17 @@ export default function App() {
 
       </main>
 
-      {/* Footer */}
-      <footer className="bg-earth-900 text-earth-400 text-xs py-6 border-t border-earth-800 mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-7 h-7 rounded-lg bg-terracotta-500/20 text-terracotta-400 flex items-center justify-center">
-              <Mountain className="w-4 h-4" />
-            </div>
-            <span className="font-serif font-bold text-earth-200 text-sm">
-              Terra Watch · Himalayan Early Warning System
-            </span>
-          </div>
-
-          <div className="flex items-center space-x-6 text-earth-400 text-xs">
-            <span>HiAVAL Avalanche Inventory</span>
-            <span>·</span>
-            <span>ALOS PALSAR 12.5m DEM</span>
-            <span>·</span>
-            <span>Open-Meteo Satellite Feed</span>
-          </div>
-
-          <div className="text-xs text-earth-500">
-            Organic Natural Design System · Hackathon 2026
-          </div>
-        </div>
-      </footer>
+<footer className="bg-earth-900 text-earth-400 text-xs py-6 border-t border-earth-800 mt-10">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between space-y-2 md:space-y-0">
+    <div className="flex items-center space-x-2">
+      <div className="w-6 h-6 rounded-lg bg-terracotta-500/20 text-terracotta-400 flex items-center justify-center">
+        <Mountain className="w-3.5 h-3.5" />
+      </div>
+      <span className="font-heading font-bold text-earth-100 text-base tracking-wide">Terraform</span>
+    </div>
+    <p className="text-xs text-earth-400 font-medium text-center md:text-right">HackRIT Hackathon 2026</p>
+  </div>
+</footer>
 
     </div>
   );

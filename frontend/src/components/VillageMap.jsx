@@ -211,6 +211,9 @@ export default function VillageMap({
           lng: parseFloat(lng),
           elevation: data.elevation ?? data.weather?.modelElevation ?? 0,
           slopeAngle: data.slopeAngle ?? 0,
+          slopeSource: data.slopeSource || 'open-meteo-elevation',
+          isOcean: !!data.isOcean,
+          isWaterBody: !!data.isWaterBody,
           aspect: (data.slopeAngle ?? 0) > 30 ? 'North-East Chute' : ((data.elevation ?? 0) <= 0 ? 'Sea Level Marine' : 'Valley Floor'),
           hiAvalEvents: 0,
           avalancheRisk: data.avalancheRisk,
@@ -218,7 +221,7 @@ export default function VillageMap({
           weather: data.weather,
           topFactors: data.topFactors,
           explanation: data.explanation,
-          statusSummary: data.explanation || `Evaluated by XGBoost model (xgb_avalanche_final.json) with live satellite and DEM elevation grid.`,
+          statusSummary: data.explanation || `Evaluated by XGBoost model with live satellite and DEM elevation grid.`,
           source: data.source || 'live-fastapi-xgboost',
           isCustom: true
         };
@@ -240,17 +243,13 @@ export default function VillageMap({
     <div className="relative isolate z-0 w-full h-[400px] sm:h-[420px] lg:h-[430px] rounded-2xl overflow-hidden border border-earth-300/80 shadow-lg bg-earth-200">
       
       {/* Top Map Toolbar */}
-      <div className="absolute top-3 left-3 z-[400] bg-earth-900/90 backdrop-blur-sm text-earth-100 px-3.5 py-2 rounded-xl border border-earth-700/80 shadow-md flex items-center gap-3 text-xs pointer-events-auto">
-        <div className="flex items-center gap-2 font-bold text-terracotta-300">
-          <Mountain className="w-4 h-4" />
-          <span>Himalayan Risk Geoscope</span>
-        </div>
-        <span className="text-earth-600">|</span>
-        <span className="text-earth-200 font-medium">
-          {villages.length} Villages
+      <div className="absolute top-3 left-3 z-[400] bg-earth-900/90 backdrop-blur-sm text-earth-100 px-3 py-1.5 rounded-xl border border-earth-700/80 shadow-md flex items-center gap-2.5 text-xs pointer-events-auto">
+        <span className="text-earth-200 font-medium flex items-center gap-1.5">
+          <Mountain className="w-3.5 h-3.5 text-terracotta-400" />
+          <span>{villages.length} Villages</span>
         </span>
         <span className="text-earth-600">|</span>
-        <span className="text-earth-300 text-xs hidden sm:inline-flex items-center gap-1.5 font-medium">
+        <span className="text-earth-300 text-xs inline-flex items-center gap-1.5 font-medium">
           <Crosshair className="w-3.5 h-3.5 text-terracotta-400" />
           Click map to evaluate point
         </span>
@@ -272,9 +271,8 @@ export default function VillageMap({
 
       {/* Map Legend Overlay */}
       <div className="absolute bottom-4 left-4 z-[400] bg-earth-900/95 backdrop-blur-md text-earth-100 p-4 rounded-xl border border-earth-700/90 shadow-xl text-xs sm:text-sm space-y-2 max-w-[260px] pointer-events-auto select-none">
-        <div className="font-bold text-earth-100 mb-1 flex items-center justify-between gap-3">
+        <div className="font-bold text-earth-100 mb-1">
           <span className="font-heading">Avalanche Threat Key</span>
-          <span className="text-xs text-earth-400 font-normal">HiAVAL Standards</span>
         </div>
         <div className="flex items-center gap-2.5">
           <span className="w-3.5 h-3.5 rounded-full bg-clay-500 inline-block shadow"></span>

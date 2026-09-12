@@ -41,6 +41,10 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   ];
   const backgroundColors = sortedFactors.map((_, index) => PALETTE[index % PALETTE.length]);
 
+  // Stable scale ceiling avoiding jittering ticks during animation
+  const maxVal = Math.max(...dataValues, 0);
+  const scaleMax = Math.min(100, Math.max(50, Math.ceil((maxVal + 4) / 10) * 10));
+
   const chartData = {
     labels: labels,
     datasets: [
@@ -50,10 +54,10 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         backgroundColor: backgroundColors,
         borderColor: backgroundColors,
         borderWidth: 1,
-        borderRadius: 5,
-        barPercentage: 0.70,
-        categoryPercentage: 0.75,
-        maxBarThickness: 13,
+        borderRadius: 6,
+        barPercentage: 0.68,
+        categoryPercentage: 0.72,
+        maxBarThickness: 16,
       },
     ],
   };
@@ -62,12 +66,23 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
     indexAxis: 'y', // Horizontal bar chart
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 750,
+      easing: 'easeOutQuart',
+    },
+    transitions: {
+      active: {
+        animation: {
+          duration: 350,
+        },
+      },
+    },
     layout: {
       padding: {
-        top: 2,
-        bottom: 2,
-        left: 0,
-        right: 8,
+        top: 6,
+        bottom: 6,
+        left: 2,
+        right: 12,
       },
     },
     plugins: {
@@ -88,7 +103,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
     scales: {
       x: {
         beginAtZero: true,
-        max: Math.min(100, Math.max(...dataValues, 35) + 8),
+        max: scaleMax,
         grid: {
           color: '#e7e0d3',
           drawBorder: false,
@@ -106,7 +121,7 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         ticks: {
           font: { family: 'Inter', size: 11, weight: '600' },
           color: '#26221c',
-          padding: 6,
+          padding: 8,
         },
       },
     },
@@ -148,23 +163,15 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
     return `Physical driver ranked #${index + 1} by the XGBoost TreeSHAP attributions.`;
   };
 
-  // Dynamic canvas key ensuring instant re-render upon random point click
-  const dynamicKey = `chart_${villageName}_${sortedFactors.map(f => `${f.name}:${f.importance}`).join('|')}`;
-
   return (
-    <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-4 h-full flex flex-col justify-between">
+    <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-3.5 flex flex-col">
       
       {/* Header */}
       <div className="border-b border-earth-200 pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5">
-            <Brain className="w-3.5 h-3.5 text-terracotta-600" />
-            <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700 font-heading">
-              Model Explainability (TreeSHAP)
-            </span>
-          </div>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-earth-200/90 text-earth-800 border border-earth-300/80 shadow-xs">
-            xgb_avalanche_final.json
+        <div className="flex items-center gap-1.5">
+          <Brain className="w-3.5 h-3.5 text-terracotta-600" />
+          <span className="text-xs font-bold uppercase tracking-wider text-terracotta-700 font-heading">
+            Model Explainability (TreeSHAP)
           </span>
         </div>
         <h3 className="font-heading text-lg sm:text-xl font-bold text-earth-900 mt-0.5">
@@ -175,11 +182,11 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         </p>
       </div>
 
-      {/* Chart.js Container with clean row separation & expanded height utilizing available space */}
+      {/* Chart.js Container with clean row separation and bounded height preventing runaway stretching */}
       <div 
-        className="w-full flex-1 min-h-[300px] sm:min-h-[340px] lg:min-h-[360px] bg-white p-3 rounded-xl border border-earth-200/80 shadow-inner flex flex-col justify-center"
+        className="relative w-full h-[270px] sm:h-[285px] bg-white p-3 sm:p-3.5 rounded-xl border border-earth-200/80 shadow-inner flex flex-col justify-center overflow-hidden"
       >
-        <Bar key={dynamicKey} data={chartData} options={chartOptions} />
+        <Bar data={chartData} options={chartOptions} />
       </div>
 
       {/* Narrative Breakdown for Local Officials / Judges */}
