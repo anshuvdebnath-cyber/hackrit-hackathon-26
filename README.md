@@ -1,4 +1,4 @@
-# 🏔️ HimVigil: Real-Time Geophysical Avalanche & Flash Flood Intelligence Platform
+# 🏔️ HimVigil: Real-Time Avalanche & Flash Flood Hazard Monitoring Platform
 
 > **A community-focused hazard index and offline-ready alerting prototype for Himalayan avalanches, flash floods, and GLOF risk awareness.**  
 > *Built for HackRIT Hackathon 2026*
@@ -7,7 +7,7 @@
 
 ## 1. 📖 Definition
 
-**HimVigil** is an AI-powered geophysical intelligence and early-warning web platform engineered to predict, monitor, and explain real-time **Avalanche Release Probability** and **Flash Flood / Glacial Lake Outburst Flood (GLOF) Hazards** across mountainous terrains, with a primary focus on the Indian Himalayan Region (Himachal Pradesh, Jammu & Kashmir, Ladakh, and Uttarakhand).
+**HimVigil** is an AI-powered hazard index and early-warning web platform engineered to predict, monitor, and explain real-time **Avalanche Release Probability** and **Flash Flood / Glacial Lake Outburst Flood (GLOF) Hazards** across mountainous terrains, with a primary focus on the Indian Himalayan Region (Himachal Pradesh, Jammu & Kashmir, Ladakh, and Uttarakhand).
 
 By fusing live satellite meteorological telemetry, high-resolution Digital Elevation Models (DEM), and a trained **XGBoost machine learning model**, HimVigil transforms complex physical weather and terrain data into intuitive, actionable risk indices ($0 - 100$) and Explainable AI (XAI) diagnostics for any monitored village or arbitrary point clicked on the globe.
 
