@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, ZoomControl } from 'react-leaflet';
 import L from 'leaflet';
 import { Mountain, AlertTriangle, Wind, Thermometer, CloudSnow, ExternalLink, Navigation, Crosshair, Trash2, Loader2, Sparkles } from 'lucide-react';
@@ -151,9 +151,9 @@ function MapCameraController({ selectedVillage }) {
   return null;
 }
 
-export default function VillageMap({ 
-  villages, 
-  selectedVillageId, 
+export default function VillageMap({
+  villages,
+  selectedVillageId,
   onSelect,
   onSelectCustom,
   customLocation,
@@ -167,6 +167,7 @@ export default function VillageMap({
     loading: false,
     data: customLocation
   } : null);
+  const customMarkerRef = useRef(null);
 
   // Sync if cleared externally
   useEffect(() => {
@@ -242,9 +243,14 @@ export default function VillageMap({
     onClearCustom?.();
   };
 
+  useEffect(() => {
+    if (customPin) {
+      customMarkerRef.current?.openPopup();
+    }
+  }, [customPin]);
+
   return (
     <div className="relative isolate z-0 w-full h-[400px] sm:h-[420px] lg:h-[430px] rounded-2xl overflow-hidden border border-earth-300/80 shadow-lg bg-earth-200">
-      
       {/* Top Map Toolbar */}
       <div className="absolute top-3 left-3 z-[400] bg-earth-900/90 backdrop-blur-sm text-earth-100 px-3 py-1.5 rounded-xl border border-earth-700/80 shadow-md flex items-center gap-2.5 text-xs pointer-events-auto">
         <span className="text-earth-200 font-medium flex items-center gap-1.5">
@@ -324,6 +330,8 @@ export default function VillageMap({
         {/* Dynamic Marker for Clicked Arbitrary Coordinates */}
         {customPin && (
           <Marker
+            ref={customMarkerRef}
+            key={`${customPin.lat}-${customPin.lng}`}
             position={[customPin.lat, customPin.lng]}
             icon={createCustomPinIcon(customPin.loading, customPin.data?.avalancheRisk?.level)}
           >
@@ -378,9 +386,16 @@ export default function VillageMap({
                       <div className="bg-earth-100/90 p-2 rounded-lg">
                         <span className="text-xs text-earth-600 font-medium block">Avalanche Score</span>
                         <span className="font-bold text-sm" style={{ color: getRiskColor(customPin.data.avalancheRisk?.level) }}>
-                          {customPin.data.avalancheRisk?.score}/100
+                          {customPin.data.avalancheRisk?.score ?? '--'}/100
                         </span>
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-earth-700 bg-earth-50 px-2.5 py-2 rounded-md mb-2.5">
+                      <span>Pressure: {customPin.data.weather?.pressure_hPa ?? '--'} hPa</span>
+                      <span>Dew point: {customPin.data.weather?.dewpoint_C ?? '--'}°C</span>
+                      <span>Humidity: {customPin.data.weather?.humidity ?? '--'}%</span>
+                      <span>Precipitation: {customPin.data.weather?.precip_mm ?? '--'} mm</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-earth-700 bg-earth-100/90 px-2.5 py-1 rounded-md mb-1 font-mono font-medium">
@@ -390,6 +405,13 @@ export default function VillageMap({
                     <div className="flex items-center justify-between text-xs text-earth-600 bg-earth-50 px-2.5 py-1 rounded-md mb-2.5 font-mono">
                       <span>24h snow {customPin.data.weather?.snowfall24h ?? 0}cm · rain {customPin.data.weather?.rainfall24h ?? 0}mm</span>
                       <span>Obs {customPin.data.weather?.observationTime ?? '--'}</span>
+                    </div>
+
+                    <div className="text-[11px] text-earth-700 bg-earth-100/90 px-2.5 py-1.5 rounded-md mb-2.5">
+                      <span className="font-semibold">Model driver:</span>{' '}
+                      {customPin.data.topFactors?.[0]?.name || 'Unavailable'}
+                      <span className="font-mono ml-1">({((customPin.data.topFactors?.[0]?.importance || 0) * 100).toFixed(1)}%)</span>
+                      <span className="block mt-0.5 text-earth-600">Source: {customPin.data.source || 'unknown'}</span>
                     </div>
 
                     {customPin.data.explanation && (
