@@ -27,13 +27,19 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   const labels = sortedFactors.map(f => f.name);
   const dataValues = sortedFactors.map(f => parseFloat((f.importance * 100).toFixed(1)));
 
-  // Color mapping based on importance ranking
-  const backgroundColors = sortedFactors.map((_, index) => {
-    if (index === 0) return '#A85448'; // Clay (Primary trigger)
-    if (index === 1) return '#C18C5D'; // Terracotta (Secondary trigger)
-    if (index === 2) return '#D09B6F';
-    return '#5D7052';                  // Moss
-  });
+  // Curated, distinct earthy palette for each parameter bar
+  const PALETTE = [
+    '#A85448', // 1. Clay red (Primary trigger)
+    '#C18C5D', // 2. Terracotta (Secondary trigger)
+    '#D09B6F', // 3. Warm Ochre
+    '#627C5A', // 4. Forest Moss
+    '#527084', // 5. Alpine Slate
+    '#857463', // 6. Earth Taupe
+    '#766A84', // 7. Ridge Dusk
+    '#68827A', // 8. Pine Mist
+    '#9E7552', // 9. Sienna
+  ];
+  const backgroundColors = sortedFactors.map((_, index) => PALETTE[index % PALETTE.length]);
 
   const chartData = {
     labels: labels,
@@ -42,10 +48,12 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         label: 'Factor Weight Contribution (%)',
         data: dataValues,
         backgroundColor: backgroundColors,
-        borderColor: backgroundColors.map(c => c),
+        borderColor: backgroundColors,
         borderWidth: 1,
-        borderRadius: 6,
-        barThickness: 18,
+        borderRadius: 5,
+        barPercentage: 0.70,
+        categoryPercentage: 0.75,
+        maxBarThickness: 13,
       },
     ],
   };
@@ -54,31 +62,39 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
     indexAxis: 'y', // Horizontal bar chart
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 2,
+        bottom: 2,
+        left: 0,
+        right: 8,
+      },
+    },
     plugins: {
       legend: {
         display: false,
       },
       tooltip: {
         backgroundColor: '#26221c',
-        titleFont: { family: 'Inter', size: 13, weight: 'bold' },
-        bodyFont: { family: 'Roboto', size: 12 },
-        padding: 10,
-        cornerRadius: 8,
+        titleFont: { family: 'Inter', size: 12, weight: 'bold' },
+        bodyFont: { family: 'Roboto', size: 11 },
+        padding: 8,
+        cornerRadius: 6,
         callbacks: {
-          label: (context) => `${context.raw}% relative contribution to risk score`,
+          label: (context) => ` ${context.raw}% relative contribution to risk score`,
         },
       },
     },
     scales: {
       x: {
         beginAtZero: true,
-        max: Math.max(...dataValues, 45) + 5,
+        max: Math.min(100, Math.max(...dataValues, 35) + 8),
         grid: {
           color: '#e7e0d3',
           drawBorder: false,
         },
         ticks: {
-          font: { family: 'Roboto', size: 12 },
+          font: { family: 'Roboto', size: 11 },
           color: '#7c6853',
           callback: (value) => `${value}%`,
         },
@@ -88,8 +104,9 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
           display: false,
         },
         ticks: {
-          font: { family: 'Inter', size: 13, weight: '600' },
+          font: { family: 'Inter', size: 11, weight: '600' },
           color: '#26221c',
+          padding: 6,
         },
       },
     },
@@ -98,13 +115,16 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
   // Plain-English physical interpretation helper
   const getFactorExplanation = (factorName, index) => {
     const nameLower = factorName.toLowerCase();
+    if (nameLower.includes('marine') || nameLower.includes('water')) {
+      return 'Flat water surface / horizontal terrain where avalanche release is physically non-applicable.';
+    }
     if (nameLower.includes('slope')) {
       return 'Terrain angle controls gravitational shear. Slopes 30°-45° are in the primary slab release threshold.';
     }
     if (nameLower.includes('snow') && !nameLower.includes('fall')) {
       return 'Depth and density of base snowpack. Deeper snowpack exerts sustained downward shear pressure.';
     }
-    if (nameLower.includes('fall') || nameLower.includes('precip')) {
+    if (nameLower.includes('fall') || nameLower.includes('precip') || nameLower.includes('rain')) {
       return 'Recent accumulation rapidly overburdens weak internal layers before consolidation can occur.';
     }
     if (nameLower.includes('wind')) {
@@ -119,8 +139,18 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
     if (nameLower.includes('pressure')) {
       return 'Barometric gradients correlate with frontal passage, storm intensity, and gust velocity.';
     }
+    if (nameLower.includes('humidity')) {
+      return 'High moisture saturation accelerates metamorphism and density changes inside the upper snowpack layers.';
+    }
+    if (nameLower.includes('month') || nameLower.includes('season')) {
+      return 'Historical seasonality weighting reflecting mid-winter and spring transition hazard cycles.';
+    }
     return `Physical driver ranked #${index + 1} by the XGBoost TreeSHAP attributions.`;
   };
+
+  // Dynamic canvas key ensuring instant re-render upon random point click
+  const dynamicKey = `${villageName}_${sortedFactors.map(f => `${f.name}-${f.importance}`).join('_')}`;
+  const containerHeight = Math.max(220, Math.min(320, sortedFactors.length * 28 + 30));
 
   return (
     <div className="bg-earth-50 rounded-2xl p-5 border border-earth-200 shadow-sm space-y-4 h-full flex flex-col justify-between">
@@ -146,9 +176,12 @@ export default function FeatureImportanceChart({ factors = [], villageName = 'Vi
         </p>
       </div>
 
-      {/* Chart.js Container */}
-      <div className="w-full h-40 sm:h-44 bg-white p-2 rounded-xl border border-earth-200/80 shadow-inner">
-        <Bar data={chartData} options={chartOptions} />
+      {/* Chart.js Container with clean row separation */}
+      <div 
+        className="w-full bg-white p-2.5 rounded-xl border border-earth-200/80 shadow-inner"
+        style={{ height: `${containerHeight}px` }}
+      >
+        <Bar key={dynamicKey} data={chartData} options={chartOptions} />
       </div>
 
       {/* Narrative Breakdown for Local Officials / Judges */}

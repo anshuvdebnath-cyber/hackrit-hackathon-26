@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mountain, ShieldAlert, Compass, Sliders, Table, RefreshCw, ChevronDown, Cpu, X } from 'lucide-react';
+import { Mountain, ShieldAlert, Compass, Sliders, Table, RefreshCw, ChevronDown, X } from 'lucide-react';
 
 export default function Header({ 
   activeTab, 
@@ -15,38 +15,20 @@ export default function Header({
   isRefreshing = false,
   onRefresh
 }) {
-  const isModelConnected = modelStatus?.online ?? true;
-
   return (
-    <header className="sticky top-3 sm:top-4 z-[100] w-full px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      {/* Floating Island Container - Compact Capsule */}
-      <div className="bg-earth-900/95 backdrop-blur-xl border border-earth-800/90 shadow-xl shadow-earth-950/25 rounded-full px-3 sm:px-5 py-1.5 transition-all">
-        <div className="flex items-center justify-between gap-2 sm:gap-3 w-full">
+    <header className="sticky top-3 sm:top-4 z-[100] w-full px-3 sm:px-6 lg:px-8 max-w-[1440px] mx-auto">
+      {/* Floating Island Container - Substantial Capsule with wider width */}
+      <div className="bg-earth-900/95 backdrop-blur-xl border border-earth-800/90 shadow-xl shadow-earth-950/25 rounded-full px-4 sm:px-6 py-2.5 sm:py-3 transition-all">
+        <div className="flex items-center justify-between gap-3 sm:gap-4 w-full">
           
-          {/* 1. Left: Brand & Model Status */}
-          <div className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
+          {/* 1. Left: Brand */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-terracotta-500 to-clay-600 flex items-center justify-center shadow-md text-white flex-shrink-0">
               <Mountain className="w-4 h-4" />
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
               <span className="font-heading text-lg sm:text-xl font-extrabold tracking-tight text-earth-50">
                 Terra Watch
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-earth-800 text-terracotta-300 border border-earth-700 hidden md:inline-block">
-                Himalayas
-              </span>
-              {/* Compact Active ML Model Badge */}
-              <span 
-                className={`hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-medium border shadow-xs ${
-                  isModelConnected 
-                    ? 'bg-moss-500/15 text-moss-300 border-moss-500/30' 
-                    : 'bg-clay-500/15 text-clay-300 border-clay-500/30'
-                }`}
-                title="Model: xgb_avalanche_final.json on FastAPI :8000"
-              >
-                <Cpu className="w-3 h-3 text-terracotta-400" />
-                <span>XGBoost ML</span>
-                <span className={`w-1.5 h-1.5 rounded-full ${isModelConnected ? 'bg-moss-400 animate-pulse' : 'bg-clay-400'}`}></span>
               </span>
             </div>
           </div>
